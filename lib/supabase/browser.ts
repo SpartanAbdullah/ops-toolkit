@@ -15,7 +15,7 @@ export function getBrowserSupabaseClient() {
   }
 
   if (!browserClient) {
-    browserClient = createBrowserClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+    browserClient = createBrowserClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_KEY);
   }
 
   return browserClient;
