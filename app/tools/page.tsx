@@ -4,10 +4,15 @@ import { PageHero } from "@/components/sections/page-hero";
 import { SectionShell } from "@/components/sections/section-shell";
 import { ToolsDirectory } from "@/components/tools/tools-directory";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { buildMetadata } from "@/lib/site";
 
-export async function generateMetadata() {
-  return { title: "Tools" };
-}
+export const metadata = buildMetadata({
+  title: "Tools",
+  description:
+    "Browse the Ops Toolkit library of focused operations utilities for warehouse work, HR, payroll, admin, finance, logistics, and everyday operational tasks.",
+  path: "/tools",
+  keywords: ["operations tools directory", "warehouse tools", "HR payroll tools"],
+});
 
 export default async function ToolsPage({
   searchParams,
@@ -25,13 +30,13 @@ export default async function ToolsPage({
             A premium library of <span className="text-gradient">focused operations utilities</span>
           </>
         }
-        description="Browse tools by category, understand what each one does immediately, and move into a single-purpose workflow without dashboard clutter."
+        description="Browse by category, understand what each tool does immediately, and move into a single-purpose workflow without dashboard clutter or confusing navigation."
         actions={[
           { label: "Open live calculator", href: "/tools/uae-overtime-calculator" },
           { label: "Talk about your workflow", href: "/contact", variant: "secondary" },
         ]}
         highlights={["Search by category", "Clear status labels", "Responsive card-based browsing"]}
-        note="This directory is intentionally focused so every result feels useful, legible, and easy to act on."
+        note="This directory stays intentionally focused so every result feels useful, legible, and easy to act on."
         aside={
           <Card>
             <CardHeader>
@@ -44,7 +49,7 @@ export default async function ToolsPage({
               </div>
               <div className="flex items-start gap-3 rounded-[1.35rem] border border-slate-100 bg-slate-50/80 p-4">
                 <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
-                <p>The structure is reusable, so new utilities can be added without changing how discovery works.</p>
+                <p>The structure stays reusable, so new utilities can ship without making discovery harder to understand.</p>
               </div>
             </CardContent>
           </Card>

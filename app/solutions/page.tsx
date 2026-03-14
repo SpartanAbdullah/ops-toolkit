@@ -7,6 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { IconTile } from "@/components/ui/icon-tile";
 import { solutions } from "@/lib/content";
+import { buildMetadata } from "@/lib/site";
+
+export const metadata = buildMetadata({
+  title: "Solutions",
+  description:
+    "Browse Ops Toolkit use cases for warehouses, HR teams, admin teams, small businesses, and operations managers to find the right starting workflow.",
+  path: "/solutions",
+  keywords: ["operations software use cases", "warehouse operations tools", "hr team tools"],
+});
 
 export default function SolutionsPage() {
   return (
@@ -18,13 +27,17 @@ export default function SolutionsPage() {
             Start from the team context, then move into the <span className="text-gradient">right operational utility</span>
           </>
         }
-        description="Ops Toolkit is organized so users can discover tools through real team use cases, not only through software categories."
+        description="Ops Toolkit is organized so users can discover tools through real team use cases, not only through software categories or feature lists."
         actions={[
           { label: "Browse tools", href: "/tools" },
           { label: "Contact us", href: "/contact", variant: "secondary" },
         ]}
+        note="This structure makes the product easier to explain internally because teams can start from their actual problem rather than guessing where they fit in a generic dashboard."
       />
-      <SectionShell title="Use cases organized around operational reality" description="Each use-case page highlights the pain points that matter most for that team and points them toward the right starting tools.">
+      <SectionShell
+        title="Use cases organized around operational reality"
+        description="Each use-case page highlights the pain points that matter most for that team and points them toward the right starting tools."
+      >
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           {solutions.map((solution) => (
             <Card key={solution.slug} className="h-full transition duration-200 hover:-translate-y-1 hover:shadow-soft">
@@ -50,5 +63,3 @@ export default function SolutionsPage() {
     </div>
   );
 }
-
-

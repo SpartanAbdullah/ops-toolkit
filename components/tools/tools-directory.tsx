@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useDeferredValue, useState } from "react";
 import { Search, Sparkles } from "lucide-react";
 
@@ -38,20 +39,25 @@ export function ToolsDirectory({ initialCategory }: ToolsDirectoryProps) {
   return (
     <div className="space-y-8">
       <Card>
-        <CardContent className="grid gap-6 pt-7 xl:grid-cols-[minmax(0,1fr)_280px] xl:items-start">
+        <CardContent className="grid gap-6 pt-7 xl:grid-cols-[minmax(0,1fr)_300px] xl:items-start">
           <div className="space-y-6">
             <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <Input
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Search tools, workflows, payroll, warehouse, admin"
-                  className="pl-11"
-                  aria-label="Search tools"
-                />
+              <div className="space-y-3">
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <Input
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder="Search tools, workflows, payroll, warehouse, admin"
+                    className="pl-11"
+                    aria-label="Search tools"
+                  />
+                </div>
+                <p className="text-sm text-slate-500">Search by tool name, team context, or the operational job you are trying to standardize.</p>
               </div>
-              <div className="text-sm font-medium text-slate-500">{filteredTools.length} matching tool{filteredTools.length === 1 ? "" : "s"}</div>
+              <div className="rounded-[1rem] border border-slate-200/80 bg-slate-50/80 px-4 py-3 text-sm font-medium text-slate-600">
+                Showing {filteredTools.length} of {tools.length}
+              </div>
             </div>
             <div className="space-y-3">
               <div className="flex flex-wrap items-center gap-3">
@@ -113,6 +119,7 @@ export function ToolsDirectory({ initialCategory }: ToolsDirectoryProps) {
                 </div>
               ))}
             </div>
+            <p className="mt-4 text-sm leading-6 text-slate-600">Every card exposes category, status, and value before click-through so discovery stays quick and trustworthy.</p>
           </div>
         </CardContent>
       </Card>
@@ -130,16 +137,20 @@ export function ToolsDirectory({ initialCategory }: ToolsDirectoryProps) {
             <p className="mt-3 max-w-md text-sm leading-7 text-slate-600">
               Try a broader category or a different keyword. The library is intentionally focused, so every result should be easy to understand at a glance.
             </p>
-            <Button
-              variant="secondary"
-              className="mt-6"
-              onClick={() => {
-                setQuery("");
-                setActiveCategory("All");
-              }}
-            >
-              Clear filters
-            </Button>
+            <div className="mt-6 flex flex-wrap justify-center gap-3">
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setQuery("");
+                  setActiveCategory("All");
+                }}
+              >
+                Clear filters
+              </Button>
+              <Button asChild variant="outline">
+                <Link href="/contact">Ask about a workflow</Link>
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}

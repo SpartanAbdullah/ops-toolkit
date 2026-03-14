@@ -4,8 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Boxes, ChevronDown } from "lucide-react";
 
+import { AuthStatusActions } from "@/components/layout/auth-status-actions";
 import { MobileNav } from "@/components/layout/mobile-nav";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { solutionNavGroups, toolNavGroups } from "@/lib/content";
 
@@ -89,13 +89,8 @@ export function SiteHeader() {
             </nav>
           </div>
           <div className="flex items-center gap-3">
-            <div className="hidden items-center gap-3 lg:flex">
-              <Button asChild variant="ghost">
-                <Link href="/login">Login</Link>
-              </Button>
-              <Button asChild>
-                <Link href="/tools">Get Started</Link>
-              </Button>
+            <div className="hidden lg:block">
+              <AuthStatusActions />
             </div>
             <MobileNav />
           </div>

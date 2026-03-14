@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { ArrowRight, Layers3, Sparkles, Users } from "lucide-react";
+import { ArrowRight, CreditCard, Layers3, PercentCircle, Sparkles, Users } from "lucide-react";
 
 import { PageHero } from "@/components/sections/page-hero";
 import { SectionShell } from "@/components/sections/section-shell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { IconTile } from "@/components/ui/icon-tile";
+import { buildMetadata } from "@/lib/site";
 
 const principles = [
   {
@@ -28,6 +29,35 @@ const principles = [
   },
 ];
 
+const shippedFoundations = [
+  {
+    title: "Public utility layer",
+    description: "The homepage, tools directory, live utilities, related tool linking, and launch-ready public pages are already in place.",
+    icon: Sparkles,
+    tone: "blue" as const,
+  },
+  {
+    title: "Private workspace layer",
+    description: "Real authentication, protected routes, profile/settings, team setup, and a clean logged-in shell are already live.",
+    icon: CreditCard,
+    tone: "purple" as const,
+  },
+  {
+    title: "Operational module layer",
+    description: "Petty cash tracking and overtime management are now database-backed modules built on the same shared design system.",
+    icon: PercentCircle,
+    tone: "green" as const,
+  },
+];
+
+export const metadata = buildMetadata({
+  title: "About",
+  description:
+    "Learn how Ops Toolkit is positioned: focused operations utilities and lightweight workflows for warehouses, HR teams, admin operators, and small businesses.",
+  path: "/about",
+  keywords: ["about ops toolkit", "operations software philosophy", "micro saas operations"],
+});
+
 export default function AboutPage() {
   return (
     <div className="pb-20">
@@ -35,16 +65,20 @@ export default function AboutPage() {
         eyebrow="About"
         title={
           <>
-            Ops Toolkit is a product for teams that need <span className="text-gradient">practical operational clarity</span>
+            Ops Toolkit is built for teams that need <span className="text-gradient">practical operational clarity</span>
           </>
         }
-        description="The idea is simple: most teams do not need more software sprawl. They need a better operating layer for the recurring utility work that keeps getting pushed into spreadsheets and chat."
+        description="The idea is simple: most teams do not need another heavyweight platform. They need a better operating layer for the recurring utility work that keeps slipping back into spreadsheets, chat, and memory."
         actions={[
           { label: "Explore tools", href: "/tools" },
-          { label: "Contact the team", href: "/contact", variant: "secondary" },
+          { label: "Get started", href: "/signup", variant: "secondary" },
         ]}
+        note="The product is designed to stay approachable: clear cards, obvious next steps, strong outputs, and room to grow into team workflows only when the job demands it."
       />
-      <SectionShell title="How the product is positioned" description="Ops Toolkit sits between informal processes and heavyweight software. It gives teams a cleaner way to handle repeat operational work without forcing a giant implementation.">
+      <SectionShell
+        title="How the product is positioned"
+        description="Ops Toolkit sits between informal processes and heavyweight software. It gives teams a cleaner way to handle repeat operational work without forcing a giant implementation."
+      >
         <div className="grid gap-6 lg:grid-cols-3">
           {principles.map((item) => (
             <Card key={item.title}>
@@ -61,12 +95,35 @@ export default function AboutPage() {
           ))}
         </div>
       </SectionShell>
-      <SectionShell title="What comes next" description="Some tools will remain lightweight solo utilities. Others may grow into collaborative mini-systems with approvals, shared views, and role-based workflows.">
+      <SectionShell
+        title="What has already shipped"
+        description="Ops Toolkit is no longer just a concept page. These are the product layers already in place for launch and near-term rollout."
+      >
+        <div className="grid gap-6 lg:grid-cols-3">
+          {shippedFoundations.map((item) => (
+            <Card key={item.title}>
+              <CardHeader>
+                <div className="flex items-center gap-4">
+                  <IconTile icon={item.icon} tone={item.tone} />
+                  <CardTitle className="text-xl">{item.title}</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm leading-7 text-slate-600">{item.description}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </SectionShell>
+      <SectionShell
+        title="What comes next"
+        description="Some tools will remain lightweight solo utilities. Others can grow into collaborative mini-systems with approvals, shared views, and role-based workflows."
+      >
         <Card>
           <CardContent className="flex flex-col gap-6 pt-6 md:flex-row md:items-center md:justify-between">
             <div className="max-w-2xl">
               <p className="font-display text-2xl font-semibold text-slate-950">If you have a repeat operational pain point, it is probably a good fit for this product direction.</p>
-              <p className="mt-3 text-sm leading-7 text-slate-600">The product roadmap is driven by repetitive jobs that are too important to leave informal, but too small to justify a heavyweight system rollout.</p>
+              <p className="mt-3 text-sm leading-7 text-slate-600">The roadmap is driven by repetitive jobs that are too important to leave informal, but too small to justify a heavyweight system rollout.</p>
             </div>
             <Button asChild size="lg">
               <Link href="/contact">
@@ -80,5 +137,3 @@ export default function AboutPage() {
     </div>
   );
 }
-
-

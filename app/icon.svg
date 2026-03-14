@@ -1,0 +1,31 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="256" height="256" rx="72" fill="url(#bg)"/>
+  <rect x="44" y="44" width="168" height="168" rx="40" fill="white" fill-opacity="0.94"/>
+  <rect x="70" y="72" width="50" height="50" rx="16" fill="url(#tile1)"/>
+  <rect x="136" y="72" width="50" height="50" rx="16" fill="url(#tile2)"/>
+  <rect x="70" y="136" width="50" height="50" rx="16" fill="url(#tile3)"/>
+  <rect x="136" y="136" width="50" height="50" rx="16" fill="#0F172A"/>
+  <path d="M92 89H98.8C106.09 89 112 94.91 112 102.2C112 109.49 106.09 115.4 98.8 115.4H92V89Z" fill="white"/>
+  <path d="M151 89H170C174.418 89 178 92.5817 178 97V107C178 111.418 174.418 115 170 115H151V89Z" fill="white"/>
+  <path d="M88 158H102.2C107.06 158 111 161.94 111 166.8V182H88V158Z" fill="white"/>
+  <path d="M153 151H169C175.627 151 181 156.373 181 163V170C181 176.627 175.627 182 169 182H153V151Z" fill="white"/>
+  <defs>
+    <linearGradient id="bg" x1="18" y1="18" x2="238" y2="238" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E0F2FE"/>
+      <stop offset="0.52" stop-color="#EEF2FF"/>
+      <stop offset="1" stop-color="#DCFCE7"/>
+    </linearGradient>
+    <linearGradient id="tile1" x1="70" y1="72" x2="120" y2="122" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0EA5E9"/>
+      <stop offset="1" stop-color="#1D4ED8"/>
+    </linearGradient>
+    <linearGradient id="tile2" x1="136" y1="72" x2="186" y2="122" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8B5CF6"/>
+      <stop offset="1" stop-color="#6D28D9"/>
+    </linearGradient>
+    <linearGradient id="tile3" x1="70" y1="136" x2="120" y2="186" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#10B981"/>
+      <stop offset="1" stop-color="#047857"/>
+    </linearGradient>
+  </defs>
+</svg>

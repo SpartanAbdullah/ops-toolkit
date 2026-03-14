@@ -27,14 +27,14 @@ export function PageHero({ eyebrow, title, description, actions = [], className,
         <div className="relative overflow-hidden rounded-[2.1rem] border border-white/85 bg-hero-mesh px-6 py-8 shadow-soft md:px-10 md:py-12 xl:px-12 xl:py-14">
           <div className="pointer-events-none absolute inset-0 panel-grid opacity-[0.14]" />
           <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white to-transparent opacity-90" />
-          <div className="relative grid gap-12 lg:grid-cols-[minmax(0,1fr)_410px] lg:items-center">
+          <div className="relative grid gap-12 lg:grid-cols-[minmax(0,1.02fr)_410px] lg:items-center">
             <div className="max-w-3xl space-y-7">
               {eyebrow ? <p className="hero-chip">{eyebrow}</p> : null}
               <div className="space-y-5">
-                <h1 className="max-w-3xl font-display text-4xl font-semibold leading-[1.02] tracking-tight text-slate-950 md:text-5xl lg:text-[4.1rem]">
+                <h1 className="max-w-[14ch] font-display text-4xl font-semibold leading-[1.02] tracking-tight text-slate-950 md:text-5xl lg:max-w-[13ch] lg:text-[4.1rem]">
                   {title}
                 </h1>
-                <p className="max-w-2xl text-base leading-8 text-slate-600 md:text-lg">{description}</p>
+                <p className="max-w-[44rem] text-base leading-8 text-slate-600 md:text-lg">{description}</p>
               </div>
               {actions.length ? (
                 <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
@@ -45,7 +45,11 @@ export function PageHero({ eyebrow, title, description, actions = [], className,
                   ))}
                 </div>
               ) : null}
-              {note ? <p className="text-sm leading-6 text-slate-500">{note}</p> : null}
+              {note ? (
+                <div className="max-w-2xl rounded-[1.25rem] border border-white/90 bg-white/82 px-4 py-3 text-sm leading-6 text-slate-600 shadow-sm">
+                  {note}
+                </div>
+              ) : null}
               {highlights.length ? (
                 <div className="flex flex-wrap gap-3">
                   {highlights.map((item) => (

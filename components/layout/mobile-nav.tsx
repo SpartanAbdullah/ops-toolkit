@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowRight, Boxes, Menu } from "lucide-react";
 
+import { AuthStatusActions } from "@/components/layout/auth-status-actions";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -96,18 +97,7 @@ export function MobileNav() {
               ))}
             </div>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <SheetClose asChild>
-              <Button asChild variant="secondary" className="w-full">
-                <Link href="/login">Login</Link>
-              </Button>
-            </SheetClose>
-            <SheetClose asChild>
-              <Button asChild className="w-full">
-                <Link href="/tools">Get Started</Link>
-              </Button>
-            </SheetClose>
-          </div>
+          <AuthStatusActions mobile />
         </div>
       </SheetContent>
     </Sheet>

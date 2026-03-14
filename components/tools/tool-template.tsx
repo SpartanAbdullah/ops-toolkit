@@ -42,8 +42,11 @@ export function ToolTemplate({ tool, sidebar, children, relatedTools }: ToolTemp
                     <Link href="#tool-workspace">Use this tool</Link>
                   </Button>
                   <Button asChild size="lg" variant="secondary">
-                    <Link href="/tools">Browse all tools</Link>
+                    <Link href="/tools">Explore all tools</Link>
                   </Button>
+                </div>
+                <div className="rounded-[1.3rem] border border-white/85 bg-white/82 px-4 py-3 text-sm leading-6 text-slate-600 shadow-sm">
+                  Need saved history, exports, or team workflows around this process? <Link href="/signup" className="font-semibold text-slate-900 underline-offset-4 hover:underline">Open the private workspace</Link>.
                 </div>
               </div>
               <Card className="border-white/90 bg-white/90">
@@ -112,7 +115,7 @@ export function ToolTemplate({ tool, sidebar, children, relatedTools }: ToolTemp
       </SectionShell>
 
       <SectionShell
-        title="Related tools"
+        title="Related tools and next steps"
         description="Ops Toolkit is designed as a focused library of utilities that can work together across daily operations."
       >
         <div className="grid gap-6 lg:grid-cols-3">
@@ -132,5 +135,3 @@ export function ToolTemplate({ tool, sidebar, children, relatedTools }: ToolTemp
     </div>
   );
 }
-
-

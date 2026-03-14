@@ -392,7 +392,7 @@ export const workflowSteps = [
     step: "2",
     title: "Capture the operational record",
     description:
-      "Future admin tools let teams save reminders, entries, and references instead of scattering them across messages.",
+      "The private workspace saves petty cash and overtime records instead of scattering them across messages and spreadsheets.",
     tool: "Petty Cash Tracker",
     tone: "green" as const,
     icon: Banknote,
@@ -412,95 +412,95 @@ export const pricingTiers: PricingTier[] = [
   {
     name: "Free",
     price: "AED 0",
-    description: "Start with core utilities and evaluate the toolkit with no operational overhead.",
-    ctaLabel: "Explore Tools",
+    description: "Use the public utilities immediately and evaluate the product without any login or rollout friction.",
+    ctaLabel: "Explore free tools",
     ctaHref: "/tools",
     tone: "blue",
     features: [
-      "Access to free public utilities",
-      "Fast card-based tool directory",
-      "Responsive interface for mobile and desktop",
-      "Calculator outputs with clear breakdowns",
+      "Public UAE overtime and barcode utilities",
+      "Searchable card-based tool directory",
+      "Responsive experience for desktop and mobile",
+      "Clear outputs, previews, and print support where relevant",
     ],
   },
   {
     name: "Pro",
     price: "From AED 49/mo",
-    description: "For growing teams that want saved states, better workflows, and premium operational tools.",
-    ctaLabel: "Talk to Sales",
-    ctaHref: "/contact",
+    description: "For operator-led teams that want a protected workspace, saved data, exports, and practical day-to-day control.",
+    ctaLabel: "Get started",
+    ctaHref: "/signup",
     highlight: true,
     tone: "purple",
     features: [
-      "Advanced operational tools",
-      "Saved calculations and reusable templates",
-      "Future-ready mini-systems with approvals",
-      "Priority support and roadmap access",
+      "Protected app shell with profile and settings",
+      "Database-backed petty cash tracking",
+      "Saved overtime entries, filters, and CSV export",
+      "Secure email/password and Google login",
     ],
   },
   {
     name: "Teams Preview",
     price: "Custom",
-    description: "For collaborative tools that need roles, approvals, and shared team views later on.",
-    ctaLabel: "Discuss Use Case",
+    description: "For teams rolling out approvals, member visibility, and shared overtime workflows across a real workspace.",
+    ctaLabel: "Talk to sales",
     ctaHref: "/contact",
     tone: "green",
     features: [
-      "Role-ready workflow structure",
-      "Shared visibility across admin teams",
-      "Use-case scoping for operations managers",
-      "Implementation support for rollout",
+      "Team creation and join-by-code workflow",
+      "Role-aware overtime approvals and payment tracking",
+      "Shared member views and settings foundation",
+      "Launch support for operational rollout",
     ],
   },
 ];
 
 export const homeFaqs: FaqItem[] = [
   {
-    question: "Is Ops Toolkit meant to replace our ERP or HR system?",
+    question: "Can I use Ops Toolkit without creating an account?",
     answer:
-      "No. Ops Toolkit is a focused operational layer for repeat utility work. It is designed to solve the practical jobs that are usually left to spreadsheets, chat messages, and memory.",
+      "Yes. The public tools directory, UAE Overtime Calculator, and SKU Barcode Batch Generator are available without login so teams can test real value before they roll anything out.",
   },
   {
-    question: "Who is this best for right now?",
+    question: "What does the private workspace unlock?",
     answer:
-      "Small businesses, warehouse teams, office admins, and operations supervisors who want fast utilities with clear outputs and minimal onboarding.",
+      "The authenticated app adds saved petty cash tracking, overtime management, team setup, role-aware access, exports, and the data layer needed for future collaborative modules.",
+  },
+  {
+    question: "Is Ops Toolkit meant to replace our ERP or HR system?",
+    answer:
+      "No. Ops Toolkit is the focused layer for repeat operational jobs that usually fall back to spreadsheets, chat messages, and memory. It is intentionally narrower than a full ERP, CRM, or accounting suite.",
   },
   {
     question: "Will more tools be added later?",
     answer:
-      "Yes. The structure of the app is intentionally modular so new utilities and collaborative mini-systems can be added without redesigning the whole product.",
-  },
-  {
-    question: "Why are some tools marked Coming Soon?",
-    answer:
-      "The product is being built as a focused toolkit. Each tool is released with a defined workflow and clear scope instead of shipping a broad but shallow dashboard.",
+      "Yes. The component system and database foundation are designed so new solo utilities and team workflows can be added cleanly without changing how navigation and discovery work.",
   },
 ];
 
 export const companyFacts = [
-  { label: "Time to value", value: "Minutes, not weeks" },
-  { label: "Design approach", value: "Clear cards and guided next steps" },
-  { label: "Product scope", value: "Focused operational utilities" },
+  { label: "Live today", value: "Free tools and a private workspace" },
+  { label: "Rollout style", value: "Start with one workflow, expand later" },
+  { label: "Built for", value: "Ops, warehouse, HR, and admin teams" },
 ];
 
 export const contactChannels = [
   {
     title: "General inquiries",
-    description: "Questions about the product, roadmap, or pricing.",
+    description: "Questions about launch status, roadmap, pricing, or how the product fits your operations stack.",
     value: "hello@opstoolkit.app",
     href: "mailto:hello@opstoolkit.app",
     tone: "blue" as const,
   },
   {
     title: "Sales and demos",
-    description: "Discuss your operational workflow and what you need next.",
+    description: "Share your team size, current workflow, and pain points so we can recommend the right starting point.",
     value: "sales@opstoolkit.app",
     href: "mailto:sales@opstoolkit.app",
     tone: "purple" as const,
   },
   {
     title: "Support",
-    description: "Need help understanding a tool or giving product feedback?",
+    description: "Use this for help with live tools, workspace setup, petty cash, or overtime questions.",
     value: "support@opstoolkit.app",
     href: "mailto:support@opstoolkit.app",
     tone: "green" as const,
@@ -512,7 +512,36 @@ export function getToolBySlug(slug: string) {
 }
 
 export function getRelatedTools(slug: string, limit = 3) {
-  return tools.filter((tool) => tool.slug !== slug).slice(0, limit);
+  const currentTool = getToolBySlug(slug);
+
+  return tools
+    .filter((tool) => tool.slug !== slug)
+    .map((tool) => {
+      let score = 0;
+
+      if (currentTool && tool.category === currentTool.category) {
+        score += 4;
+      }
+
+      if (tool.live) {
+        score += 2;
+      }
+
+      if (tool.featured) {
+        score += 1;
+      }
+
+      return { tool, score };
+    })
+    .sort((left, right) => {
+      if (right.score !== left.score) {
+        return right.score - left.score;
+      }
+
+      return left.tool.name.localeCompare(right.tool.name);
+    })
+    .slice(0, limit)
+    .map((item) => item.tool);
 }
 
 export function getSolutionBySlug(slug: string) {

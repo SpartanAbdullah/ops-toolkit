@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { PageHero } from "@/components/sections/page-hero";
@@ -6,9 +7,30 @@ import { ToolCard } from "@/components/tools/tool-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { IconTile } from "@/components/ui/icon-tile";
 import { getSolutionBySlug, solutions, tools } from "@/lib/content";
+import { buildMetadata } from "@/lib/site";
 
 export function generateStaticParams() {
   return solutions.map((solution) => ({ slug: solution.slug }));
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const solution = getSolutionBySlug(slug);
+
+  if (!solution) {
+    return buildMetadata({
+      title: "Solutions",
+      description: "Browse Ops Toolkit use cases for warehouses, HR teams, admin teams, and operations managers.",
+      path: "/solutions",
+    });
+  }
+
+  return buildMetadata({
+    title: solution.label,
+    description: solution.description,
+    path: `/solutions/${solution.slug}`,
+    keywords: [solution.label, ...solution.relatedToolSlugs],
+  });
 }
 
 export default async function SolutionPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -31,6 +53,7 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
           { label: "Browse tools", href: "/tools" },
           { label: "Contact us", href: "/contact", variant: "secondary" },
         ]}
+        note="Each use-case page is meant to reduce discovery friction: first show the operational pain points, then point to the clearest starting tools."
         aside={
           <Card>
             <CardHeader>

@@ -9,6 +9,7 @@ import { OvertimeCalculator } from "@/components/tools/overtime-calculator";
 import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { buildMetadata } from "@/lib/site";
 import { getRelatedTools, getToolBySlug, tools } from "@/lib/content";
 
 export function generateStaticParams() {
@@ -20,15 +21,19 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const tool = getToolBySlug(slug);
 
   if (!tool) {
-    return {
+    return buildMetadata({
       title: "Tool",
-    };
+      description: "Browse focused Ops Toolkit utilities for operations, warehouse, HR, and admin teams.",
+      path: "/tools",
+    });
   }
 
-  return {
+  return buildMetadata({
     title: tool.name,
     description: tool.description,
-  };
+    path: `/tools/${tool.slug}`,
+    keywords: [tool.name, tool.category, tool.bestFor],
+  });
 }
 
 function ToolPreviewWorkspace({ slug }: { slug: string }) {

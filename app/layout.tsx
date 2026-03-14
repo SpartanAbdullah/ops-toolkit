@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { Manrope, Space_Grotesk } from "next/font/google";
 
-import { SiteFooter } from "@/components/layout/site-footer";
-import { SiteHeader } from "@/components/layout/site-header";
+import { SiteFrame } from "@/components/layout/site-frame";
+import { AuthProvider } from "@/components/providers/auth-provider";
+import { absoluteUrl, siteConfig } from "@/lib/site";
 
 import "./globals.css";
 
@@ -17,26 +18,55 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteConfig.url),
+  applicationName: siteConfig.name,
   title: {
-    default: "Ops Toolkit",
-    template: "%s | Ops Toolkit",
+    default: siteConfig.name,
+    template: `%s | ${siteConfig.name}`,
   },
-  description:
-    "A polished micro-SaaS operations manager toolkit for warehouses, HR teams, admins, and small business operators.",
+  description: siteConfig.description,
+  keywords: [...siteConfig.defaultKeywords],
+  alternates: {
+    canonical: siteConfig.url,
+  },
+  openGraph: {
+    title: siteConfig.name,
+    description: siteConfig.description,
+    url: siteConfig.url,
+    siteName: siteConfig.name,
+    locale: "en_AE",
+    type: "website",
+    images: [
+      {
+        url: absoluteUrl(siteConfig.socialImagePath),
+        width: 1200,
+        height: 630,
+        alt: siteConfig.name,
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: siteConfig.name,
+    description: siteConfig.description,
+    images: [absoluteUrl(siteConfig.socialImagePath)],
+  },
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/apple-icon.svg", type: "image/svg+xml" }],
+  },
+  manifest: "/manifest.webmanifest",
+  category: "business",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${manrope.variable} ${spaceGrotesk.variable}`}>
       <body>
-        <div className="relative min-h-screen">
-          <SiteHeader />
-          <main>{children}</main>
-          <SiteFooter />
-        </div>
+        <AuthProvider>
+          <SiteFrame>{children}</SiteFrame>
+        </AuthProvider>
       </body>
     </html>
   );
 }
-
-

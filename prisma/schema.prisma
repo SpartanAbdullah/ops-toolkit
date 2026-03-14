@@ -1,0 +1,358 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AppRole {
+  individual
+  worker
+  admin
+}
+
+enum TeamMemberRole {
+  worker
+  admin
+}
+
+enum NotificationType {
+  info
+  success
+  warning
+}
+
+enum PettyCashTransactionType {
+  opening_balance
+  cash_top_up
+  expense_cash
+  expense_card
+  reimbursement_submitted
+  reimbursement_received
+  adjustment
+}
+
+enum PettyCashPaymentMethod {
+  cash
+  card
+  bank_transfer
+  other
+}
+
+enum PettyCashTransactionStatus {
+  posted
+  pending
+  received
+}
+
+enum PettyCashReimbursementStatus {
+  not_applicable
+  pending
+  received
+}
+
+enum OvertimeCalculationMode {
+  simple
+  mohre_compliant
+}
+
+enum OvertimeEntryStatus {
+  pending
+  approved
+  rejected
+  auto_approved
+}
+
+enum OvertimeApprovalDecision {
+  approved
+  rejected
+  partially_approved
+}
+
+model User {
+  id                           String                    @id @db.Uuid
+  email                        String                    @unique
+  role                         AppRole                   @default(individual)
+  activeTeamId                 String?                   @db.Uuid
+  createdAt                    DateTime                  @default(now())
+  updatedAt                    DateTime                  @updatedAt
+  activeTeam                   Team?                     @relation("ActiveTeam", fields: [activeTeamId], references: [id], onDelete: SetNull)
+  auditLogs                    AuditLog[]                @relation("AuditActor")
+  createdInviteCodes           TeamInviteCode[]          @relation("InviteCodeCreator")
+  notifications                Notification[]
+  overtimeApprovals            OvertimeApproval[]        @relation("OvertimeApprovalApprover")
+  overtimeEntriesAsWorker      OvertimeEntry[]           @relation("OvertimeEntryWorker")
+  overtimeHolidayDatesCreated  OvertimeHolidayDate[]     @relation("OvertimeHolidayCreator")
+  overtimeIndividualSettings   OvertimeSettings?         @relation("IndividualOvertimeSettings")
+  overtimePaymentRecordsMarked OvertimePaymentRecord[]   @relation("OvertimePaymentMarker")
+  overtimePaymentRecordsWorker OvertimePaymentRecord[]   @relation("OvertimePaymentWorker")
+  overtimeWorkerProfiles       OvertimeWorkerProfile[]   @relation("OvertimeWorkerProfileUser")
+  ownedTeams                   Team[]                    @relation("TeamOwner")
+  pettyCashAccounts            PettyCashAccount[]
+  pettyCashTransactionsCreated PettyCashTransaction[]    @relation("PettyCashTransactionCreator")
+  profile                      Profile?
+  teamMemberships              TeamMember[]
+
+  @@index([activeTeamId])
+}
+
+model Profile {
+  userId     String   @id @db.Uuid
+  fullName   String?
+  phone      String?
+  timezone   String?  @default("Asia/Dubai")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Team {
+  id                    String                 @id @default(uuid()) @db.Uuid
+  name                  String
+  slug                  String                 @unique
+  ownerId               String                 @db.Uuid
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  activeUsers           User[]                 @relation("ActiveTeam")
+  auditLogs             AuditLog[]
+  inviteCodes           TeamInviteCode[]
+  members               TeamMember[]
+  notifications         Notification[]
+  owner                 User                   @relation("TeamOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  overtimeEntries       OvertimeEntry[]        @relation("TeamOvertimeEntries")
+  overtimeHolidays      OvertimeHolidayDate[]  @relation("TeamOvertimeHolidays")
+  overtimePayments      OvertimePaymentRecord[] @relation("TeamOvertimePaymentRecords")
+  overtimeSettings      OvertimeSettings?      @relation("TeamOvertimeSettings")
+  overtimeWorkerProfiles OvertimeWorkerProfile[] @relation("TeamOvertimeWorkerProfiles")
+  pettyCashAccounts     PettyCashAccount[]
+
+  @@index([ownerId])
+}
+
+model TeamMember {
+  id        String         @id @default(uuid()) @db.Uuid
+  teamId    String         @db.Uuid
+  userId    String         @db.Uuid
+  role      TeamMemberRole @default(worker)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  team      Team           @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@index([userId])
+  @@index([teamId])
+}
+
+model TeamInviteCode {
+  id              String    @id @default(uuid()) @db.Uuid
+  teamId          String    @db.Uuid
+  code            String    @unique @db.VarChar(6)
+  createdByUserId String?   @db.Uuid
+  usageCount      Int       @default(0)
+  lastUsedAt      DateTime?
+  expiresAt       DateTime?
+  revokedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  createdBy       User?     @relation("InviteCodeCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  team            Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([teamId, revokedAt])
+}
+
+model AuditLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  teamId      String?  @db.Uuid
+  actorUserId String?  @db.Uuid
+  action      String
+  entityType  String
+  entityId    String?
+  summary     String
+  details     Json?
+  createdAt   DateTime @default(now())
+  actor       User?    @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  team        Team?    @relation(fields: [teamId], references: [id], onDelete: SetNull)
+
+  @@index([teamId, createdAt])
+  @@index([actorUserId, createdAt])
+}
+
+model Notification {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @db.Uuid
+  teamId    String?          @db.Uuid
+  type      NotificationType @default(info)
+  title     String
+  body      String
+  data      Json?
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+  team      Team?            @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt, createdAt])
+  @@index([teamId])
+}
+
+model PettyCashAccount {
+  id           String                 @id @default(uuid()) @db.Uuid
+  userId       String                 @db.Uuid
+  teamId       String?                @db.Uuid
+  name         String                 @default("Primary Petty Cash")
+  currency     String                 @default("AED") @db.VarChar(3)
+  notes        String?
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+  user         User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team         Team?                  @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  transactions PettyCashTransaction[]
+
+  @@unique([userId])
+  @@index([teamId])
+}
+
+model PettyCashTransaction {
+  id                  String                       @id @default(uuid()) @db.Uuid
+  accountId           String                       @db.Uuid
+  createdByUserId     String                       @db.Uuid
+  occurredAt          DateTime
+  type                PettyCashTransactionType
+  amount              Decimal                      @db.Decimal(12, 2)
+  category            String
+  vendorPayee         String?
+  paymentMethod       PettyCashPaymentMethod?
+  notes               String?
+  referenceNumber     String?
+  receiptReference    String?
+  status              PettyCashTransactionStatus   @default(posted)
+  reimbursementStatus PettyCashReimbursementStatus @default(not_applicable)
+  createdAt           DateTime                     @default(now())
+  updatedAt           DateTime                     @updatedAt
+  account             PettyCashAccount             @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  createdBy           User                         @relation("PettyCashTransactionCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@index([accountId, occurredAt])
+  @@index([createdByUserId, occurredAt])
+  @@index([type, occurredAt])
+  @@index([reimbursementStatus, occurredAt])
+}
+
+model OvertimeSettings {
+  id                           String                  @id @default(uuid()) @db.Uuid
+  teamId                       String?                 @unique @db.Uuid
+  ownerUserId                  String?                 @unique @db.Uuid
+  calculationMode              OvertimeCalculationMode @default(simple)
+  standardDailyHours           Decimal                 @default(8) @db.Decimal(5, 2)
+  simpleHourlyRate             Decimal?                @db.Decimal(10, 2)
+  weekendDays                  String[]
+  ramadanEnabled               Boolean                 @default(false)
+  ramadanStartDate             DateTime?
+  ramadanEndDate               DateTime?
+  individualBasicMonthlySalary Decimal?                @db.Decimal(12, 2)
+  createdAt                    DateTime                @default(now())
+  updatedAt                    DateTime                @updatedAt
+  owner                        User?                   @relation("IndividualOvertimeSettings", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  team                         Team?                   @relation("TeamOvertimeSettings", fields: [teamId], references: [id], onDelete: SetNull)
+}
+
+model OvertimeWorkerProfile {
+  id                 String    @id @default(uuid()) @db.Uuid
+  teamId             String    @db.Uuid
+  workerUserId       String    @db.Uuid
+  basicMonthlySalary Decimal?  @db.Decimal(12, 2)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  team               Team      @relation("TeamOvertimeWorkerProfiles", fields: [teamId], references: [id], onDelete: Cascade)
+  worker             User      @relation("OvertimeWorkerProfileUser", fields: [workerUserId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, workerUserId])
+  @@index([workerUserId])
+}
+
+model OvertimeHolidayDate {
+  id              String    @id @default(uuid()) @db.Uuid
+  teamId          String    @db.Uuid
+  date            DateTime
+  label           String?
+  createdByUserId String?   @db.Uuid
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  createdBy       User?     @relation("OvertimeHolidayCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  team            Team      @relation("TeamOvertimeHolidays", fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, date])
+  @@index([teamId, date])
+}
+
+model OvertimeEntry {
+  id                       String                  @id @default(uuid()) @db.Uuid
+  teamId                   String?                 @db.Uuid
+  workerUserId             String                  @db.Uuid
+  workedDate               DateTime
+  startTimeMinutes         Int
+  endTimeMinutes           Int
+  overnight                Boolean                 @default(false)
+  notes                    String?
+  calculationMode          OvertimeCalculationMode
+  standardDailyHours       Decimal                 @db.Decimal(5, 2)
+  fixedHourlyRate          Decimal?                @db.Decimal(10, 2)
+  basicMonthlySalary       Decimal?                @db.Decimal(12, 2)
+  totalWorkedMinutes       Int
+  overtimeMinutes          Int
+  dayOvertimeMinutes       Int                     @default(0)
+  nightOvertimeMinutes     Int                     @default(0)
+  calculatedOvertimeAmount Decimal                 @db.Decimal(12, 2)
+  isWeekend                Boolean                 @default(false)
+  isHoliday                Boolean                 @default(false)
+  ramadanApplied           Boolean                 @default(false)
+  wellbeingWarning         Boolean                 @default(false)
+  status                   OvertimeEntryStatus     @default(pending)
+  approvedWorkedMinutes    Int?
+  approvedOvertimeMinutes  Int?
+  approvedOvertimeAmount   Decimal?                @db.Decimal(12, 2)
+  lastDecisionAt           DateTime?
+  createdAt                DateTime                @default(now())
+  updatedAt                DateTime                @updatedAt
+  approvals                OvertimeApproval[]
+  team                     Team?                   @relation("TeamOvertimeEntries", fields: [teamId], references: [id], onDelete: SetNull)
+  worker                   User                    @relation("OvertimeEntryWorker", fields: [workerUserId], references: [id], onDelete: Cascade)
+
+  @@index([teamId, workedDate])
+  @@index([workerUserId, workedDate])
+  @@index([status, workedDate])
+}
+
+model OvertimeApproval {
+  id                      String                   @id @default(uuid()) @db.Uuid
+  entryId                 String                   @db.Uuid
+  approverUserId          String                   @db.Uuid
+  decision                OvertimeApprovalDecision
+  comment                 String?
+  approvedWorkedMinutes   Int?
+  approvedOvertimeMinutes Int?
+  approvedOvertimeAmount  Decimal?                 @db.Decimal(12, 2)
+  createdAt               DateTime                 @default(now())
+  approver                User                     @relation("OvertimeApprovalApprover", fields: [approverUserId], references: [id], onDelete: Restrict)
+  entry                   OvertimeEntry            @relation(fields: [entryId], references: [id], onDelete: Cascade)
+
+  @@index([entryId, createdAt])
+  @@index([approverUserId, createdAt])
+}
+
+model OvertimePaymentRecord {
+  id             String    @id @default(uuid()) @db.Uuid
+  teamId         String?   @db.Uuid
+  workerUserId   String    @db.Uuid
+  markedByUserId String    @db.Uuid
+  paidUntilDate  DateTime
+  note           String?
+  createdAt      DateTime  @default(now())
+  markedBy       User      @relation("OvertimePaymentMarker", fields: [markedByUserId], references: [id], onDelete: Restrict)
+  team           Team?     @relation("TeamOvertimePaymentRecords", fields: [teamId], references: [id], onDelete: SetNull)
+  worker         User      @relation("OvertimePaymentWorker", fields: [workerUserId], references: [id], onDelete: Cascade)
+
+  @@index([teamId, workerUserId, paidUntilDate])
+  @@index([workerUserId, paidUntilDate])
+}
