@@ -1,0 +1,110 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 42 31% 97%;
+    --foreground: 222 32% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 32% 12%;
+    --primary: 213 84% 33%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 24% 96%;
+    --secondary-foreground: 222 32% 14%;
+    --accent: 262 75% 59%;
+    --accent-foreground: 0 0% 100%;
+    --muted: 214 20% 95%;
+    --muted-foreground: 218 15% 45%;
+    --border: 214 30% 89%;
+    --input: 214 30% 89%;
+    --ring: 204 86% 54%;
+    --success: 154 67% 38%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 25 95% 15%;
+    --danger: 0 84% 60%;
+    --danger-foreground: 0 0% 100%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply min-h-screen bg-background font-body text-foreground antialiased;
+    background-image:
+      radial-gradient(circle at top left, rgba(56, 189, 248, 0.12), transparent 24%),
+      radial-gradient(circle at 85% 10%, rgba(167, 139, 250, 0.08), transparent 22%),
+      radial-gradient(circle at 50% 100%, rgba(14, 165, 233, 0.05), transparent 30%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 250, 252, 0.98));
+  }
+
+  a {
+    @apply transition-colors;
+  }
+
+  ::selection {
+    background: rgba(14, 165, 233, 0.18);
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    @apply bg-gradient-to-r from-sky-700 via-cyan-500 to-violet-600 bg-clip-text text-transparent;
+  }
+
+  .surface-glass {
+    @apply border border-white/80 bg-white/80 backdrop-blur-md;
+  }
+
+  .section-divider {
+    @apply relative;
+  }
+
+  .section-divider::before {
+    content: "";
+    @apply absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-slate-200/80 to-transparent;
+  }
+
+  .hero-chip {
+    @apply inline-flex items-center rounded-full border border-slate-200/80 bg-white/90 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600 shadow-sm;
+  }
+
+  .panel-grid {
+    background-image:
+      linear-gradient(rgba(15, 23, 42, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(15, 23, 42, 0.04) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+
+  .animate-accordion-down {
+    animation: accordion-down 0.2s ease-out;
+  }
+
+  .animate-accordion-up {
+    animation: accordion-up 0.2s ease-out;
+  }
+}
+
+@keyframes accordion-down {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+  }
+}
+
+@keyframes accordion-up {
+  from {
+    height: var(--radix-accordion-content-height);
+  }
+  to {
+    height: 0;
+  }
+}
