@@ -363,7 +363,7 @@ export default async function ReportsPage({
                   <ListRow
                     key={row.id}
                     title={context.activeTeam && isAdmin ? row.workerName : formatOvertimeDate(row.workedOn)}
-                    subtitle={context.activeTeam && isAdmin ? `${formatOvertimeDate(row.workedOn)} · ${row.overtimeLabel}` : row.calculationSummary}
+                    subtitle={context.activeTeam && isAdmin ? `${formatOvertimeDate(row.workedOn)} - ${row.overtimeLabel}` : row.calculationSummary}
                     badges={<Badge variant={row.statusVariant}>{row.statusLabel}</Badge>}
                     aside={<p className="text-sm font-semibold text-text-primary">{row.amountLabel}</p>}
                     details={row.paymentStatusLabel}
@@ -371,7 +371,22 @@ export default async function ReportsPage({
                 ))}
               </div>
             ) : (
-              <EmptyState title="No OT rows in this range" description="Try the longer date window or log new shifts." />
+              <EmptyState
+                title="No OT rows in this range"
+                description="Try the longer date window or log new shifts."
+                action={
+                  <>
+                    {rangeDays === 30 ? (
+                      <Button asChild>
+                        <Link href="/app/reports?range=90">Try 90 days</Link>
+                      </Button>
+                    ) : null}
+                    <Button asChild variant="secondary">
+                      <Link href="/app/overtime">Open OT</Link>
+                    </Button>
+                  </>
+                }
+              />
             )}
           </CardContent>
         </Card>
@@ -389,7 +404,7 @@ export default async function ReportsPage({
                   <ListRow
                     key={row.id}
                     title={row.typeLabel}
-                    subtitle={`${formatPettyCashDate(row.occurredOn)} · ${row.category}`}
+                    subtitle={`${formatPettyCashDate(row.occurredOn)} - ${row.category}`}
                     badges={<Badge variant={row.cashImpact < 0 ? "red" : row.cashImpact > 0 ? "green" : "subtle"}>{row.statusLabel}</Badge>}
                     aside={<p className="text-sm font-semibold text-text-primary">{row.cashImpactLabel}</p>}
                     details={row.notes || row.vendorPayee || "No extra note"}
@@ -397,7 +412,22 @@ export default async function ReportsPage({
                 ))}
               </div>
             ) : (
-              <EmptyState title="No petty cash rows in this range" description="Add transactions to build a usable report trail." />
+              <EmptyState
+                title="No petty cash rows in this range"
+                description="Add transactions to build a usable report trail."
+                action={
+                  <>
+                    {rangeDays === 30 ? (
+                      <Button asChild>
+                        <Link href="/app/reports?range=90">Try 90 days</Link>
+                      </Button>
+                    ) : null}
+                    <Button asChild variant="secondary">
+                      <Link href="/app/petty-cash">Open petty cash</Link>
+                    </Button>
+                  </>
+                }
+              />
             )}
           </CardContent>
         </Card>

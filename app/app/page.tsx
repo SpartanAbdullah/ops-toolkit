@@ -259,7 +259,7 @@ export default async function AppDashboardPage() {
                   <ListRow
                     key={row.id}
                     title={context.activeTeam && isAdmin ? row.workerName : formatOvertimeDate(row.workedOn)}
-                    subtitle={context.activeTeam && isAdmin ? `${formatOvertimeDate(row.workedOn)} · ${row.totalWorkedLabel} worked · ${row.overtimeLabel} OT` : `${row.totalWorkedLabel} worked · ${row.overtimeLabel} OT`}
+                    subtitle={context.activeTeam && isAdmin ? `${formatOvertimeDate(row.workedOn)} - ${row.totalWorkedLabel} worked - ${row.overtimeLabel} OT` : `${row.totalWorkedLabel} worked - ${row.overtimeLabel} OT`}
                     meta={row.approvedBy || "Awaiting review"}
                     badges={<Badge variant={row.statusVariant}>{row.statusLabel}</Badge>}
                     aside={<p className="text-sm font-semibold text-text-primary">{row.amountLabel}</p>}
@@ -303,6 +303,13 @@ export default async function AppDashboardPage() {
               <EmptyState
                 title="No activity yet"
                 description="Creating a team, logging OT, or adding petty cash entries will start the activity trail."
+                action={
+                  <Button asChild variant="secondary">
+                    <Link href={context.activeTeam ? "/app/overtime" : "/app/team"}>
+                      {context.activeTeam ? "Open OT" : "Set up team"}
+                    </Link>
+                  </Button>
+                }
               />
             )}
             {pettyCashRows.length ? (
@@ -310,10 +317,21 @@ export default async function AppDashboardPage() {
                 <p className="section-label">Latest cash movement</p>
                 <p className="mt-2 text-base font-semibold text-text-primary">{pettyCashRows.at(-1)?.typeLabel}</p>
                 <p className="mt-1 text-sm text-text-secondary">
-                  {pettyCashRows.at(-1) ? `${formatPettyCashDate(pettyCashRows.at(-1)!.occurredOn)} · ${pettyCashRows.at(-1)!.cashImpactLabel}` : "No cash movement yet"}
+                  {pettyCashRows.at(-1) ? `${formatPettyCashDate(pettyCashRows.at(-1)!.occurredOn)} - ${pettyCashRows.at(-1)!.cashImpactLabel}` : "No cash movement yet"}
                 </p>
               </div>
-            ) : null}
+            ) : (
+              <EmptyState
+                title="No cash movement yet"
+                description="Once the opening balance and first transactions are recorded, the latest ledger movement will show here."
+                action={
+                  <Button asChild variant="secondary">
+                    <Link href="/app/petty-cash">Open cash</Link>
+                  </Button>
+                }
+                className="min-h-[180px] px-5 py-8"
+              />
+            )}
           </CardContent>
         </Card>
       </div>

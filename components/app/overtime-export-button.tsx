@@ -1,6 +1,7 @@
 "use client";
 
-import { Download } from "lucide-react";
+import { useState } from "react";
+import { CheckCircle2, Download } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { buildOvertimeCsv, type OvertimeLedgerRow } from "@/lib/overtime";
@@ -16,6 +17,8 @@ function downloadFile(filename: string, contents: string, mimeType: string) {
 }
 
 export function OvertimeExportButton({ rows }: { rows: OvertimeLedgerRow[] }) {
+  const [downloaded, setDownloaded] = useState(false);
+
   return (
     <Button
       type="button"
@@ -30,11 +33,13 @@ export function OvertimeExportButton({ rows }: { rows: OvertimeLedgerRow[] }) {
           buildOvertimeCsv(rows),
           "text/csv;charset=utf-8",
         );
+        setDownloaded(true);
+        window.setTimeout(() => setDownloaded(false), 1800);
       }}
       disabled={!rows.length}
     >
-      <Download className="h-4 w-4" />
-      Export CSV
+      {downloaded ? <CheckCircle2 className="h-4 w-4" /> : <Download className="h-4 w-4" />}
+      {downloaded ? "Downloaded" : "Export CSV"}
     </Button>
   );
 }

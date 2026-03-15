@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { ClipboardList } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -23,6 +24,7 @@ export function OvertimeEntryList({
   showAdminActions,
   emptyTitle,
   emptyDescription,
+  resetHref,
 }: {
   rows: OvertimeLedgerRow[];
   hasAnyRows: boolean;
@@ -31,6 +33,7 @@ export function OvertimeEntryList({
   showAdminActions: boolean;
   emptyTitle: string;
   emptyDescription: string;
+  resetHref?: string;
 }) {
   const router = useRouter();
   const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
@@ -54,6 +57,13 @@ export function OvertimeEntryList({
             icon={ClipboardList}
             title={hasAnyRows ? emptyTitle : "No overtime entries yet"}
             description={hasAnyRows && filtersActive ? emptyDescription : "Log the first shift to start building your OT history, approvals, and payment trail."}
+            action={
+              hasAnyRows && filtersActive && resetHref ? (
+                <Button asChild variant="secondary">
+                  <Link href={resetHref}>Reset filters</Link>
+                </Button>
+              ) : undefined
+            }
           />
         ) : (
           <div className="space-y-3">
@@ -63,8 +73,8 @@ export function OvertimeEntryList({
                 title={showWorkerName ? row.workerName : formatOvertimeDate(row.workedOn)}
                 subtitle={
                   showWorkerName
-                    ? `${formatOvertimeDate(row.workedOn)} · ${row.startTimeLabel} - ${row.endTimeLabel}`
-                    : `${row.startTimeLabel} - ${row.endTimeLabel} ${row.overnight ? "· Overnight" : ""}`
+                    ? `${formatOvertimeDate(row.workedOn)} - ${row.startTimeLabel} to ${row.endTimeLabel}`
+                    : `${row.startTimeLabel} to ${row.endTimeLabel}${row.overnight ? " - Overnight" : ""}`
                 }
                 meta={row.approvedBy || "Awaiting review"}
                 badges={
@@ -86,7 +96,7 @@ export function OvertimeEntryList({
                   <div className="space-y-2">
                     <p>
                       <span className="font-semibold text-text-primary">Worked:</span> {row.totalWorkedLabel}
-                      {" · "}
+                      {" - "}
                       <span className="font-semibold text-text-primary">OT:</span> {row.overtimeLabel}
                     </p>
                     <p>{row.calculationSummary}</p>

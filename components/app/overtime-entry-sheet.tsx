@@ -11,8 +11,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { IconTile } from "@/components/ui/icon-tile";
+import { InlineMessage } from "@/components/ui/inline-message";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { StickyActionBar } from "@/components/ui/sticky-action-bar";
 import { Textarea } from "@/components/ui/textarea";
 import {
   calculateOvertime,
@@ -21,11 +23,6 @@ import {
   type OvertimeSettingsSnapshot,
 } from "@/lib/overtime";
 import { overtimeEntrySchema, type OvertimeEntryValues } from "@/lib/validation/overtime";
-
-const feedbackClasses = {
-  success: "rounded-[1.2rem] border border-emerald-200 bg-emerald-50/80 px-4 py-3 text-sm text-emerald-700",
-  error: "rounded-[1.2rem] border border-rose-200 bg-rose-50/80 px-4 py-3 text-sm text-rose-700",
-} as const;
 
 function buildDefaultValues(): OvertimeEntryValues {
   return {
@@ -154,7 +151,7 @@ export function OvertimeEntrySheet({
             </div>
           </div>
 
-          <form className="space-y-6" onSubmit={onSubmit}>
+          <form className="space-y-6 pb-2" onSubmit={onSubmit}>
             <div className="grid gap-5 md:grid-cols-2">
               <FormField label="Shift date" htmlFor="overtime-date" error={errors.workedDate?.message}>
                 <Input id="overtime-date" type="date" {...register("workedDate")} />
@@ -225,16 +222,21 @@ export function OvertimeEntrySheet({
               ) : null}
             </div>
 
-            {message ? <div className={feedbackClasses[message.tone]}>{message.text}</div> : null}
+            {message ? <InlineMessage tone={message.tone}>{message.text}</InlineMessage> : null}
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-              <Button type="submit" size="lg" disabled={isPending}>
-                {isPending ? "Saving shift" : "Save shift"}
-              </Button>
-              <Button type="button" variant="secondary" size="lg" onClick={() => setOpen(false)}>
-                Cancel
-              </Button>
-            </div>
+            <StickyActionBar>
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                <p className="text-sm text-text-secondary">Save once the preview looks right.</p>
+                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-end">
+                  <Button type="submit" size="lg" disabled={isPending}>
+                    {isPending ? "Saving shift" : "Save shift"}
+                  </Button>
+                  <Button type="button" variant="secondary" size="lg" onClick={() => setOpen(false)}>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </StickyActionBar>
           </form>
         </div>
       </SheetContent>

@@ -10,8 +10,11 @@ import { createPettyCashTransactionAction } from "@/app/app/petty-cash/actions";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { IconTile } from "@/components/ui/icon-tile";
+import { InlineMessage } from "@/components/ui/inline-message";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { StickyActionBar } from "@/components/ui/sticky-action-bar";
 import { Textarea } from "@/components/ui/textarea";
 import {
   formatCashImpact,
@@ -27,8 +30,6 @@ import {
   type PettyCashTransactionTypeValue,
 } from "@/lib/petty-cash";
 import { pettyCashTransactionSchema, type PettyCashTransactionFormValues } from "@/lib/validation/petty-cash";
-
-const selectClasses = "flex h-12 w-full rounded-[1.15rem] border border-slate-200/80 bg-white/95 px-4 py-3 text-sm text-slate-950 shadow-sm transition-all duration-200 focus-visible:border-sky-300 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-100";
 
 const typeIcons: Record<PettyCashTransactionTypeValue, typeof ClipboardList> = {
   opening_balance: BanknoteArrowUp,
@@ -215,15 +216,15 @@ export function PettyCashTransactionSheet({
             </div>
           </div>
 
-          <form className="space-y-6" onSubmit={onSubmit}>
+          <form className="space-y-6 pb-2" onSubmit={onSubmit}>
             <div className="grid gap-5 md:grid-cols-2">
               {hasOpeningBalance ? (
                 <FormField label="Transaction type" htmlFor="petty-cash-type" hint="Choose the movement you want to add.">
-                  <select id="petty-cash-type" className={selectClasses} {...register("type")}>
+                  <Select id="petty-cash-type" {...register("type")}>
                     {availableTypes.map((type) => (
                       <option key={type.value} value={type.value}>{type.label}</option>
                     ))}
-                  </select>
+                  </Select>
                 </FormField>
               ) : (
                 <div className="space-y-3 rounded-[1.3rem] border border-sky-100 bg-sky-50/70 px-4 py-4">
@@ -263,12 +264,12 @@ export function PettyCashTransactionSheet({
               </FormField>
               {typeNeedsSelectablePaymentMethod(selectedType) ? (
                 <FormField label="Payment method" htmlFor="petty-cash-payment-method" hint="How the money moved into the fund or back to the operator." error={errors.paymentMethod?.message}>
-                  <select id="petty-cash-payment-method" className={selectClasses} {...register("paymentMethod")}>
+                  <Select id="petty-cash-payment-method" {...register("paymentMethod")}>
                     <option value="">Select payment method</option>
                     {pettyCashPaymentMethods.map((method) => (
                       <option key={method.value} value={method.value}>{method.label}</option>
                     ))}
-                  </select>
+                  </Select>
                 </FormField>
               ) : (
                 <div className="space-y-3 rounded-[1.3rem] border border-slate-100 bg-slate-50/80 px-4 py-4">
@@ -298,20 +299,21 @@ export function PettyCashTransactionSheet({
               <Textarea id="petty-cash-notes" placeholder="What happened, why it was needed, or any detail useful for later review." {...register("notes")} />
             </FormField>
 
-            {message ? (
-              <div className={message.tone === "success" ? "rounded-[1.2rem] border border-emerald-200 bg-emerald-50/80 px-4 py-3 text-sm text-emerald-700" : "rounded-[1.2rem] border border-rose-200 bg-rose-50/80 px-4 py-3 text-sm text-rose-700"}>
-                {message.text}
-              </div>
-            ) : null}
+            {message ? <InlineMessage tone={message.tone}>{message.text}</InlineMessage> : null}
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-              <Button type="submit" size="lg" disabled={isPending}>
-                {isPending ? "Saving transaction" : hasOpeningBalance ? "Save transaction" : "Set opening balance"}
-              </Button>
-              <Button type="button" variant="secondary" size="lg" onClick={() => setOpen(false)}>
-                Cancel
-              </Button>
-            </div>
+            <StickyActionBar>
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                <p className="text-sm text-text-secondary">Keep entries short and specific so reconciliation stays quick later.</p>
+                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-end">
+                  <Button type="submit" size="lg" disabled={isPending}>
+                    {isPending ? "Saving transaction" : hasOpeningBalance ? "Save transaction" : "Set opening balance"}
+                  </Button>
+                  <Button type="button" variant="secondary" size="lg" onClick={() => setOpen(false)}>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </StickyActionBar>
           </form>
         </div>
       </SheetContent>

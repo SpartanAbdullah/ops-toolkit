@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { ReceiptText } from "lucide-react";
 
 import { PettyCashLedgerActions } from "@/components/app/petty-cash-ledger-actions";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ListRow } from "@/components/ui/list-row";
@@ -32,10 +34,12 @@ export function PettyCashLedger({
   rows,
   hasAnyRows,
   filtersActive,
+  resetHref,
 }: {
   rows: PettyCashLedgerRow[];
   hasAnyRows: boolean;
   filtersActive: boolean;
+  resetHref?: string;
 }) {
   return (
     <Card>
@@ -52,6 +56,13 @@ export function PettyCashLedger({
             icon={ReceiptText}
             title={hasAnyRows ? "No transactions match these filters" : "No petty cash entries yet"}
             description={hasAnyRows && filtersActive ? "Adjust the filters to bring back the full ledger." : "Set the opening balance first, then keep the ledger current with top-ups, expenses, reimbursements, and adjustments."}
+            action={
+              hasAnyRows && filtersActive && resetHref ? (
+                <Button asChild variant="secondary">
+                  <Link href={resetHref}>Reset filters</Link>
+                </Button>
+              ) : undefined
+            }
           />
         ) : (
           <div className="space-y-3">
@@ -59,7 +70,7 @@ export function PettyCashLedger({
               <ListRow
                 key={row.id}
                 title={row.typeLabel}
-                subtitle={`${formatPettyCashDate(row.occurredOn)} · ${row.category}`}
+                subtitle={`${formatPettyCashDate(row.occurredOn)} - ${row.category}`}
                 meta={row.paymentMethodLabel ?? "No separate payment method"}
                 badges={<Badge variant={getStatusVariant(row)}>{row.statusLabel}</Badge>}
                 aside={

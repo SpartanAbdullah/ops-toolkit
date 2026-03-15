@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { ListRow } from "@/components/ui/list-row";
 import { SectionHeader } from "@/components/ui/section-header";
 import { Select } from "@/components/ui/select";
+import { StickyActionBar } from "@/components/ui/sticky-action-bar";
 import {
   formatOvertimeDate,
   overtimeCalculationModes,
@@ -201,12 +202,14 @@ export function OvertimeSettingsForm({
 
             {settingsMessage ? <InlineMessage tone={settingsMessage.tone}>{settingsMessage.text}</InlineMessage> : null}
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <Button type="submit" size="lg" disabled={isSavingSettings}>
-                {isSavingSettings ? "Saving settings" : "Save settings"}
-              </Button>
-              <Badge variant={scope === "team" ? "blue" : "subtle"}>{scope === "team" ? "Shared rule set" : "Personal rule set"}</Badge>
-            </div>
+            <StickyActionBar offsetForMobileNav>
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                <Badge variant={scope === "team" ? "blue" : "subtle"}>{scope === "team" ? "Shared rule set" : "Personal rule set"}</Badge>
+                <Button type="submit" size="lg" disabled={isSavingSettings}>
+                  {isSavingSettings ? "Saving settings" : "Save settings"}
+                </Button>
+              </div>
+            </StickyActionBar>
           </form>
         </CardContent>
       </Card>

@@ -199,7 +199,7 @@ export default async function PettyCashPage({
         />
       ) : null}
 
-      <PettyCashLedger rows={filteredRows} hasAnyRows={hasAnyRows} filtersActive={filtersActive} />
+      <PettyCashLedger rows={filteredRows} hasAnyRows={hasAnyRows} filtersActive={filtersActive} resetHref="/app/petty-cash" />
     </div>
   );
 }

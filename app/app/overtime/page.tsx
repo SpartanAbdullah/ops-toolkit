@@ -424,7 +424,7 @@ export default async function OvertimePage({
             </Card>
           </div>
 
-          <OvertimeEntryList rows={filteredRows} hasAnyRows={rows.length > 0} filtersActive={filtersActive} showWorkerName={Boolean(activeTeamId && isAdmin)} showAdminActions={false} emptyTitle="No entries match these filters" emptyDescription="Adjust the filter range or reset the filters to bring back the full entry history." />
+          <OvertimeEntryList rows={filteredRows} hasAnyRows={rows.length > 0} filtersActive={filtersActive} showWorkerName={Boolean(activeTeamId && isAdmin)} showAdminActions={false} emptyTitle="No entries match these filters" emptyDescription="Adjust the filter range or reset the filters to bring back the full entry history." resetHref="/app/overtime?tab=entries" />
         </div>
       ) : null}
       {activeTab === "approvals" && activeTeamId && isAdmin ? (

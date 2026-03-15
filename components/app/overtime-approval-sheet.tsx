@@ -10,17 +10,14 @@ import { reviewOvertimeEntryAction } from "@/app/app/overtime/actions";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { IconTile } from "@/components/ui/icon-tile";
+import { InlineMessage } from "@/components/ui/inline-message";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { StickyActionBar } from "@/components/ui/sticky-action-bar";
 import { Textarea } from "@/components/ui/textarea";
 import { overtimeReviewDecisions, type OvertimeLedgerRow } from "@/lib/overtime";
 import { overtimeReviewSchema, type OvertimeReviewValues } from "@/lib/validation/overtime";
-
-const selectClasses = "flex h-12 w-full rounded-[1.15rem] border border-slate-200/80 bg-white/95 px-4 py-3 text-sm text-slate-950 shadow-sm transition-all duration-200 focus-visible:border-sky-300 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-100";
-const feedbackClasses = {
-  success: "rounded-[1.2rem] border border-emerald-200 bg-emerald-50/80 px-4 py-3 text-sm text-emerald-700",
-  error: "rounded-[1.2rem] border border-rose-200 bg-rose-50/80 px-4 py-3 text-sm text-rose-700",
-} as const;
 
 function buildDefaultValues(entry: OvertimeLedgerRow): OvertimeReviewValues {
   return {
@@ -130,13 +127,13 @@ export function OvertimeApprovalSheet({
             </div>
           </div>
 
-          <form className="space-y-6" onSubmit={onSubmit}>
+          <form className="space-y-6 pb-2" onSubmit={onSubmit}>
             <FormField label="Decision" htmlFor="overtime-review-decision" error={errors.decision?.message}>
-              <select id="overtime-review-decision" className={selectClasses} {...register("decision")}>
+              <Select id="overtime-review-decision" {...register("decision")}>
                 {overtimeReviewDecisions.map((option) => (
                   <option key={option.value} value={option.value}>{option.label}</option>
                 ))}
-              </select>
+              </Select>
             </FormField>
 
             {decision !== "rejected" ? (
@@ -157,16 +154,23 @@ export function OvertimeApprovalSheet({
               <Textarea id="overtime-review-comment" className="min-h-[110px]" placeholder={decision === "rejected" ? "Explain what needs correction before resubmission." : "Optional note about any adjusted values or context."} {...register("comment")} />
             </FormField>
 
-            {message ? <div className={feedbackClasses[message.tone]}>{message.text}</div> : null}
+            {message ? <InlineMessage tone={message.tone}>{message.text}</InlineMessage> : null}
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-              <Button type="submit" size="lg" disabled={isPending}>
-                {isPending ? "Saving review" : decision === "rejected" ? "Reject entry" : "Save decision"}
-              </Button>
-              <Button type="button" variant="secondary" size="lg" onClick={() => setOpen(false)}>
-                Cancel
-              </Button>
-            </div>
+            <StickyActionBar>
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                <p className="text-sm text-text-secondary">
+                  {decision === "rejected" ? "Rejections should clearly explain what needs correction." : "Save approved values once payroll-facing numbers look correct."}
+                </p>
+                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-end">
+                  <Button type="submit" size="lg" variant={decision === "rejected" ? "danger" : "default"} disabled={isPending}>
+                    {isPending ? "Saving review" : decision === "rejected" ? "Reject entry" : "Save decision"}
+                  </Button>
+                  <Button type="button" variant="secondary" size="lg" onClick={() => setOpen(false)}>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </StickyActionBar>
           </form>
         </div>
       </SheetContent>

@@ -11,6 +11,7 @@ import { FormField } from "@/components/ui/form-field";
 import { InlineMessage } from "@/components/ui/inline-message";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { StickyActionBar } from "@/components/ui/sticky-action-bar";
 import {
   getDefaultWeekendDays,
   overtimeCalculationModes,
@@ -147,9 +148,15 @@ export function CreateTeamForm() {
       </div>
 
       {message ? <InlineMessage tone={message.tone}>{message.text}</InlineMessage> : null}
-      <Button type="submit" disabled={isPending}>
-        {isPending ? "Creating team" : "Create team"}
-      </Button>
+
+      <StickyActionBar offsetForMobileNav>
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+          <p className="text-sm text-text-secondary">Create the workspace first. OT rules can still be updated later.</p>
+          <Button type="submit" disabled={isPending}>
+            {isPending ? "Creating team" : "Create team"}
+          </Button>
+        </div>
+      </StickyActionBar>
     </form>
   );
 }
