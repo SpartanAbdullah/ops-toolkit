@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
@@ -73,26 +73,26 @@ enum OvertimeApprovalDecision {
 }
 
 model User {
-  id                           String                    @id @db.Uuid
-  email                        String                    @unique
-  role                         AppRole                   @default(individual)
-  activeTeamId                 String?                   @db.Uuid
-  createdAt                    DateTime                  @default(now())
-  updatedAt                    DateTime                  @updatedAt
-  activeTeam                   Team?                     @relation("ActiveTeam", fields: [activeTeamId], references: [id], onDelete: SetNull)
-  auditLogs                    AuditLog[]                @relation("AuditActor")
-  createdInviteCodes           TeamInviteCode[]          @relation("InviteCodeCreator")
+  id                           String                  @id @db.Uuid
+  email                        String                  @unique
+  role                         AppRole                 @default(individual)
+  activeTeamId                 String?                 @db.Uuid
+  createdAt                    DateTime                @default(now())
+  updatedAt                    DateTime                @updatedAt
+  activeTeam                   Team?                   @relation("ActiveTeam", fields: [activeTeamId], references: [id], onDelete: SetNull)
+  auditLogs                    AuditLog[]              @relation("AuditActor")
+  createdInviteCodes           TeamInviteCode[]        @relation("InviteCodeCreator")
   notifications                Notification[]
-  overtimeApprovals            OvertimeApproval[]        @relation("OvertimeApprovalApprover")
-  overtimeEntriesAsWorker      OvertimeEntry[]           @relation("OvertimeEntryWorker")
-  overtimeHolidayDatesCreated  OvertimeHolidayDate[]     @relation("OvertimeHolidayCreator")
-  overtimeIndividualSettings   OvertimeSettings?         @relation("IndividualOvertimeSettings")
-  overtimePaymentRecordsMarked OvertimePaymentRecord[]   @relation("OvertimePaymentMarker")
-  overtimePaymentRecordsWorker OvertimePaymentRecord[]   @relation("OvertimePaymentWorker")
-  overtimeWorkerProfiles       OvertimeWorkerProfile[]   @relation("OvertimeWorkerProfileUser")
-  ownedTeams                   Team[]                    @relation("TeamOwner")
+  overtimeApprovals            OvertimeApproval[]      @relation("OvertimeApprovalApprover")
+  overtimeEntriesAsWorker      OvertimeEntry[]         @relation("OvertimeEntryWorker")
+  overtimeHolidayDatesCreated  OvertimeHolidayDate[]   @relation("OvertimeHolidayCreator")
+  overtimeIndividualSettings   OvertimeSettings?       @relation("IndividualOvertimeSettings")
+  overtimePaymentRecordsMarked OvertimePaymentRecord[] @relation("OvertimePaymentMarker")
+  overtimePaymentRecordsWorker OvertimePaymentRecord[] @relation("OvertimePaymentWorker")
+  overtimeWorkerProfiles       OvertimeWorkerProfile[] @relation("OvertimeWorkerProfileUser")
+  ownedTeams                   Team[]                  @relation("TeamOwner")
   pettyCashAccounts            PettyCashAccount[]
-  pettyCashTransactionsCreated PettyCashTransaction[]    @relation("PettyCashTransactionCreator")
+  pettyCashTransactionsCreated PettyCashTransaction[]  @relation("PettyCashTransactionCreator")
   profile                      Profile?
   teamMemberships              TeamMember[]
 
@@ -100,34 +100,34 @@ model User {
 }
 
 model Profile {
-  userId     String   @id @db.Uuid
-  fullName   String?
-  phone      String?
-  timezone   String?  @default("Asia/Dubai")
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String   @id @db.Uuid
+  fullName  String?
+  phone     String?
+  timezone  String?  @default("Asia/Dubai")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Team {
-  id                    String                 @id @default(uuid()) @db.Uuid
-  name                  String
-  slug                  String                 @unique
-  ownerId               String                 @db.Uuid
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
-  activeUsers           User[]                 @relation("ActiveTeam")
-  auditLogs             AuditLog[]
-  inviteCodes           TeamInviteCode[]
-  members               TeamMember[]
-  notifications         Notification[]
-  owner                 User                   @relation("TeamOwner", fields: [ownerId], references: [id], onDelete: Restrict)
-  overtimeEntries       OvertimeEntry[]        @relation("TeamOvertimeEntries")
-  overtimeHolidays      OvertimeHolidayDate[]  @relation("TeamOvertimeHolidays")
-  overtimePayments      OvertimePaymentRecord[] @relation("TeamOvertimePaymentRecords")
-  overtimeSettings      OvertimeSettings?      @relation("TeamOvertimeSettings")
+  id                     String                  @id @default(uuid()) @db.Uuid
+  name                   String
+  slug                   String                  @unique
+  ownerId                String                  @db.Uuid
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  activeUsers            User[]                  @relation("ActiveTeam")
+  auditLogs              AuditLog[]
+  inviteCodes            TeamInviteCode[]
+  members                TeamMember[]
+  notifications          Notification[]
+  owner                  User                    @relation("TeamOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  overtimeEntries        OvertimeEntry[]         @relation("TeamOvertimeEntries")
+  overtimeHolidays       OvertimeHolidayDate[]   @relation("TeamOvertimeHolidays")
+  overtimePayments       OvertimePaymentRecord[] @relation("TeamOvertimePaymentRecords")
+  overtimeSettings       OvertimeSettings?       @relation("TeamOvertimeSettings")
   overtimeWorkerProfiles OvertimeWorkerProfile[] @relation("TeamOvertimeWorkerProfiles")
-  pettyCashAccounts     PettyCashAccount[]
+  pettyCashAccounts      PettyCashAccount[]
 
   @@index([ownerId])
 }
@@ -259,29 +259,29 @@ model OvertimeSettings {
 }
 
 model OvertimeWorkerProfile {
-  id                 String    @id @default(uuid()) @db.Uuid
-  teamId             String    @db.Uuid
-  workerUserId       String    @db.Uuid
-  basicMonthlySalary Decimal?  @db.Decimal(12, 2)
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
-  team               Team      @relation("TeamOvertimeWorkerProfiles", fields: [teamId], references: [id], onDelete: Cascade)
-  worker             User      @relation("OvertimeWorkerProfileUser", fields: [workerUserId], references: [id], onDelete: Cascade)
+  id                 String   @id @default(uuid()) @db.Uuid
+  teamId             String   @db.Uuid
+  workerUserId       String   @db.Uuid
+  basicMonthlySalary Decimal? @db.Decimal(12, 2)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  team               Team     @relation("TeamOvertimeWorkerProfiles", fields: [teamId], references: [id], onDelete: Cascade)
+  worker             User     @relation("OvertimeWorkerProfileUser", fields: [workerUserId], references: [id], onDelete: Cascade)
 
   @@unique([teamId, workerUserId])
   @@index([workerUserId])
 }
 
 model OvertimeHolidayDate {
-  id              String    @id @default(uuid()) @db.Uuid
-  teamId          String    @db.Uuid
+  id              String   @id @default(uuid()) @db.Uuid
+  teamId          String   @db.Uuid
   date            DateTime
   label           String?
-  createdByUserId String?   @db.Uuid
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  createdBy       User?     @relation("OvertimeHolidayCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
-  team            Team      @relation("TeamOvertimeHolidays", fields: [teamId], references: [id], onDelete: Cascade)
+  createdByUserId String?  @db.Uuid
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  createdBy       User?    @relation("OvertimeHolidayCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  team            Team     @relation("TeamOvertimeHolidays", fields: [teamId], references: [id], onDelete: Cascade)
 
   @@unique([teamId, date])
   @@index([teamId, date])
@@ -343,16 +343,16 @@ model OvertimeApproval {
 }
 
 model OvertimePaymentRecord {
-  id             String    @id @default(uuid()) @db.Uuid
-  teamId         String?   @db.Uuid
-  workerUserId   String    @db.Uuid
-  markedByUserId String    @db.Uuid
+  id             String   @id @default(uuid()) @db.Uuid
+  teamId         String?  @db.Uuid
+  workerUserId   String   @db.Uuid
+  markedByUserId String   @db.Uuid
   paidUntilDate  DateTime
   note           String?
-  createdAt      DateTime  @default(now())
-  markedBy       User      @relation("OvertimePaymentMarker", fields: [markedByUserId], references: [id], onDelete: Restrict)
-  team           Team?     @relation("TeamOvertimePaymentRecords", fields: [teamId], references: [id], onDelete: SetNull)
-  worker         User      @relation("OvertimePaymentWorker", fields: [workerUserId], references: [id], onDelete: Cascade)
+  createdAt      DateTime @default(now())
+  markedBy       User     @relation("OvertimePaymentMarker", fields: [markedByUserId], references: [id], onDelete: Restrict)
+  team           Team?    @relation("TeamOvertimePaymentRecords", fields: [teamId], references: [id], onDelete: SetNull)
+  worker         User     @relation("OvertimePaymentWorker", fields: [workerUserId], references: [id], onDelete: Cascade)
 
   @@index([teamId, workerUserId, paidUntilDate])
   @@index([workerUserId, paidUntilDate])

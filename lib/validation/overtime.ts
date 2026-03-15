@@ -34,75 +34,89 @@ function parseNumber(value: string) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-export const overtimeSettingsSchema = z
-  .object({
-    calculationMode: z.enum(calculationModeValues),
-    standardDailyHours: z.string().trim().min(1, "Enter the standard daily hours."),
-    fixedHourlyRate: z.string().trim().or(z.literal("")),
-    weekendDays: z.array(z.enum(weekendDayValues)).min(1, "Choose at least one weekend day."),
-    ramadanEnabled: z.boolean(),
-    ramadanStartDate: z.string().trim().or(z.literal("")),
-    ramadanEndDate: z.string().trim().or(z.literal("")),
-    individualBasicMonthlySalary: z.string().trim().or(z.literal("")),
-  })
-  .superRefine((values, context) => {
-    const standardDailyHours = parseNumber(values.standardDailyHours);
-    if (standardDailyHours === null || standardDailyHours <= 0 || standardDailyHours > 24) {
+export const overtimeSettingsBaseSchema = z.object({
+  calculationMode: z.enum(calculationModeValues),
+  standardDailyHours: z.string().trim().min(1, "Enter the standard daily hours."),
+  fixedHourlyRate: z.string().trim().or(z.literal("")),
+  weekendDays: z.array(z.enum(weekendDayValues)).min(1, "Choose at least one weekend day."),
+  ramadanEnabled: z.boolean(),
+  ramadanStartDate: z.string().trim().or(z.literal("")),
+  ramadanEndDate: z.string().trim().or(z.literal("")),
+  individualBasicMonthlySalary: z.string().trim().or(z.literal("")),
+});
+
+type OvertimeSettingsRefinementValues = Pick<
+  z.infer<typeof overtimeSettingsBaseSchema>,
+  | "calculationMode"
+  | "standardDailyHours"
+  | "fixedHourlyRate"
+  | "ramadanEnabled"
+  | "ramadanStartDate"
+  | "ramadanEndDate"
+> & {
+  individualBasicMonthlySalary?: string;
+};
+
+export function addOvertimeSettingsIssues(values: OvertimeSettingsRefinementValues, context: z.RefinementCtx) {
+  const standardDailyHours = parseNumber(values.standardDailyHours);
+  if (standardDailyHours === null || standardDailyHours <= 0 || standardDailyHours > 24) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["standardDailyHours"],
+      message: "Enter a daily hours value between 0 and 24.",
+    });
+  }
+
+  if (values.calculationMode === "simple") {
+    const fixedHourlyRate = parseNumber(values.fixedHourlyRate);
+    if (fixedHourlyRate === null || fixedHourlyRate <= 0) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ["standardDailyHours"],
-        message: "Enter a daily hours value between 0 and 24.",
+        path: ["fixedHourlyRate"],
+        message: "Enter the fixed AED per hour rate for Simple Mode.",
+      });
+    }
+  }
+
+  if (values.individualBasicMonthlySalary) {
+    const salary = parseNumber(values.individualBasicMonthlySalary);
+    if (salary === null || salary <= 0) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["individualBasicMonthlySalary"],
+        message: "Enter a valid basic monthly salary.",
+      });
+    }
+  }
+
+  if (values.ramadanEnabled) {
+    if (!values.ramadanStartDate || !isValidDateInput(values.ramadanStartDate)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["ramadanStartDate"],
+        message: "Choose the Ramadan start date.",
       });
     }
 
-    if (values.calculationMode === "simple") {
-      const fixedHourlyRate = parseNumber(values.fixedHourlyRate);
-      if (fixedHourlyRate === null || fixedHourlyRate <= 0) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["fixedHourlyRate"],
-          message: "Enter the fixed AED per hour rate for Simple Mode.",
-        });
-      }
+    if (!values.ramadanEndDate || !isValidDateInput(values.ramadanEndDate)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["ramadanEndDate"],
+        message: "Choose the Ramadan end date.",
+      });
     }
 
-    if (values.individualBasicMonthlySalary) {
-      const salary = parseNumber(values.individualBasicMonthlySalary);
-      if (salary === null || salary <= 0) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["individualBasicMonthlySalary"],
-          message: "Enter a valid basic monthly salary.",
-        });
-      }
+    if (values.ramadanStartDate && values.ramadanEndDate && values.ramadanStartDate > values.ramadanEndDate) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["ramadanEndDate"],
+        message: "Ramadan end date must be after the start date.",
+      });
     }
+  }
+}
 
-    if (values.ramadanEnabled) {
-      if (!values.ramadanStartDate || !isValidDateInput(values.ramadanStartDate)) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["ramadanStartDate"],
-          message: "Choose the Ramadan start date.",
-        });
-      }
-
-      if (!values.ramadanEndDate || !isValidDateInput(values.ramadanEndDate)) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["ramadanEndDate"],
-          message: "Choose the Ramadan end date.",
-        });
-      }
-
-      if (values.ramadanStartDate && values.ramadanEndDate && values.ramadanStartDate > values.ramadanEndDate) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["ramadanEndDate"],
-          message: "Ramadan end date must be after the start date.",
-        });
-      }
-    }
-  });
+export const overtimeSettingsSchema = overtimeSettingsBaseSchema.superRefine(addOvertimeSettingsIssues);
 
 export const overtimeHolidaySchema = z.object({
   holidayDate: z.string().trim().min(1, "Choose a holiday date.").refine((value) => isValidDateInput(value), "Choose a valid holiday date."),
