@@ -6,11 +6,11 @@ import { cn } from "@/lib/utils";
 import type { IconTone } from "@/lib/types";
 
 const toneSurfaces: Record<IconTone, string> = {
-  blue: "border-sky-100 bg-sky-50/60",
-  green: "border-emerald-100 bg-emerald-50/60",
-  purple: "border-violet-100 bg-violet-50/60",
-  amber: "border-amber-100 bg-amber-50/70",
-  red: "border-rose-100 bg-rose-50/70",
+  blue: "border-primary-100 bg-primary-50",
+  green: "border-success-50 bg-success-50",
+  purple: "border-primary-100 bg-primary-50",
+  amber: "border-warning-50 bg-warning-50",
+  red: "border-danger-50 bg-danger-50",
 };
 
 type CalloutProps = {
@@ -30,11 +30,11 @@ export function Callout({ title, description, icon, tone = "blue", children, cla
           <IconTile icon={icon} tone={tone} />
           <div className="space-y-1.5">
             <CardTitle className="text-lg">{title}</CardTitle>
-            {description ? <p className="text-sm leading-6 text-slate-600">{description}</p> : null}
+            {description ? <p className="text-sm leading-6 text-text-secondary">{description}</p> : null}
           </div>
         </div>
       </CardHeader>
-      {children ? <CardContent className="space-y-3 text-sm leading-6 text-slate-600">{children}</CardContent> : null}
+      {children ? <CardContent className="space-y-3 text-sm leading-6 text-text-secondary">{children}</CardContent> : null}
     </Card>
   );
 }

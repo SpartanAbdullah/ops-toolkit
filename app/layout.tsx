@@ -1,5 +1,5 @@
-import type { Metadata } from "next";
-import { Manrope, Space_Grotesk } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Inter } from "next/font/google";
 
 import { SiteFrame } from "@/components/layout/site-frame";
 import { AuthProvider } from "@/components/providers/auth-provider";
@@ -7,14 +7,9 @@ import { absoluteUrl, siteConfig } from "@/lib/site";
 
 import "./globals.css";
 
-const manrope = Manrope({
+const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-manrope",
-});
-
-const spaceGrotesk = Space_Grotesk({
-  subsets: ["latin"],
-  variable: "--font-space-grotesk",
+  variable: "--font-inter",
 });
 
 export const metadata: Metadata = {
@@ -57,11 +52,26 @@ export const metadata: Metadata = {
   },
   manifest: "/manifest.webmanifest",
   category: "business",
+  appleWebApp: {
+    capable: true,
+    title: siteConfig.shortName,
+    statusBarStyle: "default",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#2563EB",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${manrope.variable} ${spaceGrotesk.variable}`}>
+    <html lang="en" className={inter.variable}>
       <body>
         <AuthProvider>
           <SiteFrame>{children}</SiteFrame>

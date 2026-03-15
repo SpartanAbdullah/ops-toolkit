@@ -8,19 +8,15 @@ import { useRouter } from "next/navigation";
 import { createTeamAction, joinTeamAction, regenerateJoinCodeAction } from "@/app/app/actions";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
+import { InlineMessage } from "@/components/ui/inline-message";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import {
   getDefaultWeekendDays,
   overtimeCalculationModes,
   weekendDayOptions,
 } from "@/lib/overtime";
 import { createTeamSchema, joinTeamSchema, type CreateTeamValues, type JoinTeamValues } from "@/lib/validation/team";
-
-const selectClasses = "flex h-12 w-full rounded-[1.15rem] border border-slate-200/80 bg-white/95 px-4 py-3 text-sm text-slate-950 shadow-sm transition-all duration-200 focus-visible:border-sky-300 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-100";
-const feedbackClasses = {
-  success: "rounded-[1.2rem] border border-emerald-200 bg-emerald-50/80 px-4 py-3 text-sm text-emerald-700",
-  error: "rounded-[1.2rem] border border-rose-200 bg-rose-50/80 px-4 py-3 text-sm text-rose-700",
-} as const;
 
 export function CreateTeamForm() {
   const router = useRouter();
@@ -84,61 +80,61 @@ export function CreateTeamForm() {
 
   return (
     <form className="space-y-6" onSubmit={onSubmit}>
-      <FormField label="Team name" htmlFor="team-name" hint="Examples: Main Warehouse, Admin Ops, Payroll Team." error={errors.name?.message}>
+      <FormField label="Team name" htmlFor="team-name" hint="Use a clear operational name people recognize immediately." error={errors.name?.message}>
         <Input id="team-name" type="text" placeholder="Main Warehouse" {...register("name")} />
       </FormField>
 
-      <div className="rounded-[1.5rem] border border-slate-200/80 bg-slate-50/80 p-5">
-        <div className="space-y-2">
-          <p className="text-sm font-semibold text-slate-900">Initial overtime setup</p>
-          <p className="text-sm leading-6 text-slate-600">These defaults will power the overtime module immediately after team creation, and admins can adjust them later.</p>
+      <div className="space-y-5 rounded-3xl border border-border bg-slate-50 p-5">
+        <div className="space-y-1">
+          <p className="text-base font-semibold text-text-primary">Initial overtime setup</p>
+          <p className="text-sm leading-6 text-text-secondary">These defaults apply right away and can be updated later from the OT settings tab.</p>
         </div>
 
-        <div className="mt-5 grid gap-5 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2">
           <FormField label="Calculation mode" htmlFor="team-ot-mode" error={errors.calculationMode?.message}>
-            <select id="team-ot-mode" className={selectClasses} {...register("calculationMode")}>
+            <Select id="team-ot-mode" {...register("calculationMode")}>
               {overtimeCalculationModes.map((mode) => (
                 <option key={mode.value} value={mode.value}>{mode.label}</option>
               ))}
-            </select>
+            </Select>
           </FormField>
-          <FormField label="Standard daily hours" htmlFor="team-standard-hours" hint="8 hours is the default for most teams." error={errors.standardDailyHours?.message}>
+          <FormField label="Standard daily hours" htmlFor="team-standard-hours" hint="8 hours is the most common default." error={errors.standardDailyHours?.message}>
             <Input id="team-standard-hours" type="number" step="0.5" min="1" max="24" placeholder="8" {...register("standardDailyHours")} />
           </FormField>
         </div>
 
-        <div className="mt-5 grid gap-5 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2">
           <FormField
             label="Simple mode hourly rate"
             htmlFor="team-fixed-rate"
-            hint={calculationMode === "simple" ? "Required for Simple Mode." : "Optional here. Worker basic salary is set later in Members for compliant mode."}
+            hint={calculationMode === "simple" ? "Required when using Simple Mode." : "Worker salary is set later for compliant mode."}
             error={errors.fixedHourlyRate?.message}
           >
-            <Input id="team-fixed-rate" type="number" step="0.01" min="0" placeholder="e.g. 18" {...register("fixedHourlyRate")} />
+            <Input id="team-fixed-rate" type="number" step="0.01" min="0" placeholder="18" {...register("fixedHourlyRate")} />
           </FormField>
           <div className="space-y-3">
-            <p className="text-sm font-semibold text-slate-900">Weekend days</p>
-            <p className="text-xs leading-5 text-slate-500">These days are treated as rest days for compliant overtime calculations.</p>
-            <div className="grid gap-3 rounded-[1.3rem] border border-slate-200/80 bg-white/90 p-4 sm:grid-cols-2">
+            <p className="text-sm font-semibold text-text-primary">Weekend days</p>
+            <p className="text-sm text-text-muted">Used as rest days for compliant overtime calculations.</p>
+            <div className="grid gap-3 rounded-3xl border border-border bg-white p-4 sm:grid-cols-2">
               {weekendDayOptions.map((day) => (
-                <label key={day.value} className="flex items-center gap-3 rounded-[1rem] border border-slate-200/80 bg-slate-50/70 px-3 py-3 text-sm text-slate-700 transition hover:border-slate-300 hover:bg-white">
-                  <input type="checkbox" value={day.value} className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-200" {...register("weekendDays")} />
+                <label key={day.value} className="flex items-center gap-3 rounded-2xl border border-border bg-slate-50 px-3 py-3 text-sm text-text-secondary transition hover:bg-white">
+                  <input type="checkbox" value={day.value} className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-50" {...register("weekendDays")} />
                   <span>{day.label}</span>
                 </label>
               ))}
             </div>
-            {errors.weekendDays?.message ? <div className={feedbackClasses.error}>{errors.weekendDays.message}</div> : null}
+            {errors.weekendDays?.message ? <InlineMessage tone="error">{errors.weekendDays.message}</InlineMessage> : null}
           </div>
         </div>
 
-        <div className="mt-5 space-y-4 rounded-[1.3rem] border border-slate-200/80 bg-white/90 p-4">
-          <label className="flex items-center gap-3 text-sm font-semibold text-slate-900">
-            <input type="checkbox" className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-200" {...register("ramadanEnabled")} />
+        <div className="space-y-4 rounded-3xl border border-border bg-white p-4">
+          <label className="flex items-center gap-3 text-sm font-semibold text-text-primary">
+            <input type="checkbox" className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-50" {...register("ramadanEnabled")} />
             Enable Ramadan hour reduction
           </label>
-          <p className="text-xs leading-5 text-slate-500">When enabled, the compliant mode will reduce standard daily hours to 6 during the configured Ramadan dates.</p>
+          <p className="text-sm text-text-secondary">When enabled, compliant mode reduces standard daily hours to 6 during the Ramadan dates below.</p>
           {ramadanEnabled ? (
-            <div className="grid gap-5 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-2">
               <FormField label="Ramadan start date" htmlFor="team-ramadan-start" error={errors.ramadanStartDate?.message}>
                 <Input id="team-ramadan-start" type="date" {...register("ramadanStartDate")} />
               </FormField>
@@ -150,7 +146,7 @@ export function CreateTeamForm() {
         </div>
       </div>
 
-      {message ? <div className={feedbackClasses[message.tone]}>{message.text}</div> : null}
+      {message ? <InlineMessage tone={message.tone}>{message.text}</InlineMessage> : null}
       <Button type="submit" disabled={isPending}>
         {isPending ? "Creating team" : "Create team"}
       </Button>
@@ -194,10 +190,10 @@ export function JoinTeamForm() {
 
   return (
     <form className="space-y-5" onSubmit={onSubmit}>
-      <FormField label="Join code" htmlFor="team-code" hint="Codes are 6 characters and generated by a team admin." error={errors.code?.message}>
+      <FormField label="Join code" htmlFor="team-code" hint="Use the 6-character code from a team admin." error={errors.code?.message}>
         <Input id="team-code" type="text" placeholder="AB12CD" className="uppercase" {...register("code")} />
       </FormField>
-      {message ? <div className={feedbackClasses[message.tone]}>{message.text}</div> : null}
+      {message ? <InlineMessage tone={message.tone}>{message.text}</InlineMessage> : null}
       <Button type="submit" variant="secondary" disabled={isPending}>
         {isPending ? "Joining team" : "Join team"}
       </Button>
@@ -212,7 +208,7 @@ export function RegenerateJoinCodeButton() {
 
   return (
     <div className="space-y-3">
-      {message ? <div className={feedbackClasses[message.tone]}>{message.text}</div> : null}
+      {message ? <InlineMessage tone={message.tone}>{message.text}</InlineMessage> : null}
       <Button
         type="button"
         variant="secondary"

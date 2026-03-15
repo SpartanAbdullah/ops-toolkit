@@ -4,17 +4,17 @@ import { cn } from "@/lib/utils";
 import type { IconTone } from "@/lib/types";
 
 const toneStyles: Record<IconTone, string> = {
-  blue: "border-sky-200/90 bg-gradient-to-br from-sky-50 via-white to-sky-100/70 text-sky-700 shadow-[0_14px_28px_-20px_rgba(14,165,233,0.5)]",
-  green: "border-emerald-200/90 bg-gradient-to-br from-emerald-50 via-white to-emerald-100/70 text-emerald-700 shadow-[0_14px_28px_-20px_rgba(16,185,129,0.42)]",
-  purple: "border-violet-200/90 bg-gradient-to-br from-violet-50 via-white to-violet-100/70 text-violet-700 shadow-[0_14px_28px_-20px_rgba(139,92,246,0.42)]",
-  amber: "border-amber-200/90 bg-gradient-to-br from-amber-50 via-white to-amber-100/70 text-amber-700 shadow-[0_14px_28px_-20px_rgba(245,158,11,0.42)]",
-  red: "border-rose-200/90 bg-gradient-to-br from-rose-50 via-white to-rose-100/70 text-rose-700 shadow-[0_14px_28px_-20px_rgba(244,63,94,0.42)]",
+  blue: "border-primary-100 bg-primary-50 text-primary-700",
+  green: "border-success-50 bg-success-50 text-success-600",
+  purple: "border-primary-100 bg-primary-50 text-primary-700",
+  amber: "border-warning-50 bg-warning-50 text-warning-600",
+  red: "border-danger-50 bg-danger-50 text-danger-600",
 };
 
 const sizeStyles = {
-  sm: "h-10 w-10 rounded-[1rem] [&>svg]:h-4 [&>svg]:w-4",
-  md: "h-12 w-12 rounded-[1.15rem] [&>svg]:h-5 [&>svg]:w-5",
-  lg: "h-14 w-14 rounded-[1.25rem] [&>svg]:h-6 [&>svg]:w-6",
+  sm: "h-10 w-10 rounded-2xl [&>svg]:h-4 [&>svg]:w-4",
+  md: "h-12 w-12 rounded-2xl [&>svg]:h-5 [&>svg]:w-5",
+  lg: "h-14 w-14 rounded-3xl [&>svg]:h-6 [&>svg]:w-6",
 };
 
 type IconTileProps = {
@@ -28,7 +28,7 @@ export function IconTile({ icon: Icon, tone = "blue", size = "md", className }: 
   return (
     <div
       className={cn(
-        "inline-flex items-center justify-center border backdrop-blur-sm",
+        "inline-flex items-center justify-center border",
         toneStyles[tone],
         sizeStyles[size],
         className,

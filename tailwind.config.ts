@@ -11,23 +11,35 @@ const config = {
     container: {
       center: true,
       padding: {
-        DEFAULT: "1.25rem",
-        lg: "2rem",
-        xl: "2.5rem",
+        DEFAULT: "1rem",
+        sm: "1.25rem",
+        lg: "1.5rem",
+        xl: "2rem",
       },
       screens: {
-        "2xl": "1240px",
+        "2xl": "1280px",
       },
     },
     extend: {
       colors: {
+        app: {
+          background: "hsl(var(--app-background))",
+        },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        text: {
+          primary: "hsl(var(--text-primary))",
+          secondary: "hsl(var(--text-secondary))",
+          muted: "hsl(var(--text-muted))",
+        },
         primary: {
-          DEFAULT: "hsl(var(--primary))",
+          50: "hsl(var(--primary-50))",
+          600: "hsl(var(--primary-600))",
+          700: "hsl(var(--primary-700))",
+          DEFAULT: "hsl(var(--primary-600))",
           foreground: "hsl(var(--primary-foreground))",
         },
         secondary: {
@@ -47,51 +59,57 @@ const config = {
           foreground: "hsl(var(--card-foreground))",
         },
         success: {
-          DEFAULT: "hsl(var(--success))",
+          50: "hsl(var(--success-50))",
+          600: "hsl(var(--success-600))",
+          DEFAULT: "hsl(var(--success-600))",
           foreground: "hsl(var(--success-foreground))",
         },
         warning: {
-          DEFAULT: "hsl(var(--warning))",
+          50: "hsl(var(--warning-50))",
+          600: "hsl(var(--warning-600))",
+          DEFAULT: "hsl(var(--warning-600))",
           foreground: "hsl(var(--warning-foreground))",
         },
         danger: {
-          DEFAULT: "hsl(var(--danger))",
+          50: "hsl(var(--danger-50))",
+          600: "hsl(var(--danger-600))",
+          DEFAULT: "hsl(var(--danger-600))",
           foreground: "hsl(var(--danger-foreground))",
         },
       },
       borderRadius: {
-        xl: "1.25rem",
-        "2xl": "1.75rem",
-        "3xl": "2rem",
+        xl: "1rem",
+        "2xl": "1.5rem",
+        "3xl": "1.75rem",
       },
       boxShadow: {
-        soft: "0 20px 45px -24px rgba(15, 23, 42, 0.22)",
-        card: "0 18px 40px -26px rgba(15, 23, 42, 0.18)",
-        glow: "0 16px 30px -20px rgba(14, 165, 233, 0.35)",
+        soft: "0 16px 32px -22px rgba(15, 23, 42, 0.16)",
+        card: "0 10px 24px -18px rgba(15, 23, 42, 0.14)",
+        glow: "0 0 0 1px rgba(37, 99, 235, 0.08), 0 14px 30px -20px rgba(37, 99, 235, 0.24)",
       },
       backgroundImage: {
-        "hero-mesh":
-          "radial-gradient(circle at top left, rgba(56, 189, 248, 0.24), transparent 30%), radial-gradient(circle at top right, rgba(59, 130, 246, 0.12), transparent 25%), linear-gradient(180deg, rgba(255,255,255,0.95), rgba(249,250,251,0.95))",
+        "app-radial":
+          "radial-gradient(circle at top, rgba(37, 99, 235, 0.09), transparent 32%), linear-gradient(180deg, rgba(248, 250, 252, 1), rgba(255, 255, 255, 1))",
         "soft-grid":
-          "linear-gradient(rgba(15, 23, 42, 0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(15, 23, 42, 0.04) 1px, transparent 1px)",
+          "linear-gradient(rgba(148, 163, 184, 0.16) 1px, transparent 1px), linear-gradient(90deg, rgba(148, 163, 184, 0.16) 1px, transparent 1px)",
       },
       fontFamily: {
-        body: ["var(--font-manrope)"],
-        display: ["var(--font-space-grotesk)"],
+        body: ["var(--font-inter)"],
+        display: ["var(--font-inter)"],
       },
       keyframes: {
         "fade-up": {
-          "0%": { opacity: "0", transform: "translateY(14px)" },
+          "0%": { opacity: "0", transform: "translateY(12px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
-        float: {
-          "0%, 100%": { transform: "translateY(0)" },
-          "50%": { transform: "translateY(-8px)" },
+        "pulse-soft": {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0.64" },
         },
       },
       animation: {
         "fade-up": "fade-up 0.65s ease-out both",
-        float: "float 7s ease-in-out infinite",
+        "pulse-soft": "pulse-soft 1.6s ease-in-out infinite",
       },
     },
   },

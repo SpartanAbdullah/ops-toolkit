@@ -13,10 +13,15 @@ import {
 } from "@/app/app/overtime/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { EmptyState } from "@/components/ui/empty-state";
 import { FormField } from "@/components/ui/form-field";
-import { IconTile } from "@/components/ui/icon-tile";
+import { InlineMessage } from "@/components/ui/inline-message";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { ListRow } from "@/components/ui/list-row";
+import { SectionHeader } from "@/components/ui/section-header";
+import { Select } from "@/components/ui/select";
 import {
   formatOvertimeDate,
   overtimeCalculationModes,
@@ -28,12 +33,6 @@ import {
   type OvertimeHolidayValues,
   type OvertimeSettingsValues,
 } from "@/lib/validation/overtime";
-
-const selectClasses = "flex h-12 w-full rounded-[1.15rem] border border-slate-200/80 bg-white/95 px-4 py-3 text-sm text-slate-950 shadow-sm transition-all duration-200 focus-visible:border-sky-300 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-100";
-const feedbackClasses = {
-  success: "rounded-[1.2rem] border border-emerald-200 bg-emerald-50/80 px-4 py-3 text-sm text-emerald-700",
-  error: "rounded-[1.2rem] border border-rose-200 bg-rose-50/80 px-4 py-3 text-sm text-rose-700",
-} as const;
 
 export function OvertimeSettingsForm({
   scope,
@@ -119,32 +118,30 @@ export function OvertimeSettingsForm({
 
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-      <div className="rounded-[1.7rem] border border-white/85 bg-white/88 shadow-card backdrop-blur-md">
-        <div className="border-b border-slate-100 p-7">
-          <div className="flex items-start gap-4">
-            <IconTile icon={Settings2} tone="purple" size="lg" />
-            <div className="space-y-2">
-              <h3 className="font-display text-2xl font-semibold tracking-tight text-slate-950">Overtime settings</h3>
-              <p className="text-sm leading-6 text-slate-600">Keep the calculation rules obvious for small teams and individual operators. These settings are used by the shift entry preview and by the saved records themselves.</p>
-            </div>
-          </div>
-        </div>
-        <div className="space-y-6 p-7">
+      <Card>
+        <CardContent className="space-y-6 p-5 sm:p-6">
+          <SectionHeader
+            eyebrow="Policy"
+            title="Overtime settings"
+            description="Keep the policy obvious so supervisors and admins can move fast without second-guessing the calculation rules."
+            badge={scope === "team" ? "Team policy" : "Individual policy"}
+          />
+
           <form className="space-y-6" onSubmit={onSubmitSettings}>
-            <div className="grid gap-5 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-2">
               <FormField label="Calculation mode" htmlFor="settings-mode" error={settingsForm.formState.errors.calculationMode?.message}>
-                <select id="settings-mode" className={selectClasses} {...settingsForm.register("calculationMode")}>
+                <Select id="settings-mode" {...settingsForm.register("calculationMode")}>
                   {overtimeCalculationModes.map((mode) => (
                     <option key={mode.value} value={mode.value}>{mode.label}</option>
                   ))}
-                </select>
+                </Select>
               </FormField>
               <FormField label="Standard daily hours" htmlFor="settings-standard-hours" error={settingsForm.formState.errors.standardDailyHours?.message}>
                 <Input id="settings-standard-hours" type="number" step="0.5" min="1" max="24" {...settingsForm.register("standardDailyHours")} />
               </FormField>
             </div>
 
-            <div className="grid gap-5 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-2">
               <FormField
                 label="Simple mode hourly rate"
                 htmlFor="settings-fixed-rate"
@@ -157,41 +154,41 @@ export function OvertimeSettingsForm({
                 <FormField
                   label="Your basic monthly salary"
                   htmlFor="settings-salary"
-                  hint="Needed only for individual MOHRE-compliant calculations."
+                  hint="Needed only for individual compliant calculations."
                   error={settingsForm.formState.errors.individualBasicMonthlySalary?.message}
                 >
                   <Input id="settings-salary" type="number" step="0.01" min="0" {...settingsForm.register("individualBasicMonthlySalary")} />
                 </FormField>
               ) : (
-                <div className="space-y-3 rounded-[1.3rem] border border-slate-200/80 bg-slate-50/80 px-4 py-4">
-                  <p className="text-sm font-semibold text-slate-900">Worker salaries</p>
-                  <p className="text-sm leading-6 text-slate-600">For team mode, worker basic salaries are managed in the Members tab so each person can have a different compensation profile.</p>
+                <div className="rounded-3xl border border-border bg-slate-50 p-4">
+                  <p className="text-sm font-semibold text-text-primary">Worker salaries</p>
+                  <p className="mt-2 text-sm leading-6 text-text-secondary">In team mode, worker salary profiles are managed from the Members tab.</p>
                 </div>
               )}
             </div>
 
             <div className="space-y-3">
-              <p className="text-sm font-semibold text-slate-900">Weekend days</p>
-              <p className="text-xs leading-5 text-slate-500">These days are treated as rest days for compliant overtime calculations.</p>
-              <div className="grid gap-3 rounded-[1.3rem] border border-slate-200/80 bg-slate-50/70 p-4 sm:grid-cols-2 lg:grid-cols-3">
+              <p className="text-sm font-semibold text-text-primary">Weekend days</p>
+              <p className="text-sm text-text-muted">These days are treated as rest days for compliant overtime calculations.</p>
+              <div className="grid gap-3 rounded-3xl border border-border bg-slate-50 p-4 sm:grid-cols-2 lg:grid-cols-3">
                 {weekendDayOptions.map((day) => (
-                  <label key={day.value} className="flex items-center gap-3 rounded-[1rem] border border-slate-200/80 bg-white/90 px-3 py-3 text-sm text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-white">
-                    <input type="checkbox" value={day.value} className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-200" {...settingsForm.register("weekendDays")} />
+                  <label key={day.value} className="flex items-center gap-3 rounded-2xl border border-border bg-white px-3 py-3 text-sm text-text-secondary transition hover:bg-primary-50">
+                    <input type="checkbox" value={day.value} className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-50" {...settingsForm.register("weekendDays")} />
                     <span>{day.label}</span>
                   </label>
                 ))}
               </div>
-              {settingsForm.formState.errors.weekendDays?.message ? <div className={feedbackClasses.error}>{settingsForm.formState.errors.weekendDays.message}</div> : null}
+              {settingsForm.formState.errors.weekendDays?.message ? <InlineMessage tone="error">{settingsForm.formState.errors.weekendDays.message}</InlineMessage> : null}
             </div>
 
-            <div className="space-y-4 rounded-[1.3rem] border border-slate-200/80 bg-slate-50/80 p-4">
-              <label className="flex items-center gap-3 text-sm font-semibold text-slate-900">
-                <input type="checkbox" className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-200" {...settingsForm.register("ramadanEnabled")} />
+            <div className="space-y-4 rounded-3xl border border-border bg-slate-50 p-4">
+              <label className="flex items-center gap-3 text-sm font-semibold text-text-primary">
+                <input type="checkbox" className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-50" {...settingsForm.register("ramadanEnabled")} />
                 Enable Ramadan hour reduction
               </label>
-              <p className="text-xs leading-5 text-slate-500">When active, compliant mode will reduce standard daily hours to 6 during the date range below.</p>
+              <p className="text-sm text-text-secondary">When active, compliant mode reduces standard daily hours to 6 during the configured Ramadan date range.</p>
               {ramadanEnabled ? (
-                <div className="grid gap-5 md:grid-cols-2">
+                <div className="grid gap-4 md:grid-cols-2">
                   <FormField label="Ramadan start date" htmlFor="settings-ramadan-start" error={settingsForm.formState.errors.ramadanStartDate?.message}>
                     <Input id="settings-ramadan-start" type="date" {...settingsForm.register("ramadanStartDate")} />
                   </FormField>
@@ -202,91 +199,91 @@ export function OvertimeSettingsForm({
               ) : null}
             </div>
 
-            {settingsMessage ? <div className={feedbackClasses[settingsMessage.tone]}>{settingsMessage.text}</div> : null}
+            {settingsMessage ? <InlineMessage tone={settingsMessage.tone}>{settingsMessage.text}</InlineMessage> : null}
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <Button type="submit" size="lg" disabled={isSavingSettings}>
                 {isSavingSettings ? "Saving settings" : "Save settings"}
               </Button>
-              <Badge variant={scope === "team" ? "purple" : "blue"}>{scope === "team" ? "Team policy" : "Individual policy"}</Badge>
+              <Badge variant={scope === "team" ? "blue" : "subtle"}>{scope === "team" ? "Shared rule set" : "Personal rule set"}</Badge>
             </div>
           </form>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      <div className="space-y-6">
-        <div className="rounded-[1.7rem] border border-white/85 bg-white/88 shadow-card backdrop-blur-md">
-          <div className="border-b border-slate-100 p-7">
-            <div className="flex items-start gap-4">
-              <IconTile icon={CalendarDays} tone="amber" size="lg" />
-              <div className="space-y-2">
-                <h3 className="font-display text-2xl font-semibold tracking-tight text-slate-950">Holiday dates</h3>
-                <p className="text-sm leading-6 text-slate-600">Public holiday dates can be flagged manually for the MVP so the system treats work on those days as rest day overtime.</p>
-              </div>
-            </div>
-          </div>
-          <div className="space-y-6 p-7">
-            {canManageHolidays ? (
-              <form className="space-y-5" onSubmit={onSubmitHoliday}>
-                <div className="grid gap-5 md:grid-cols-2">
-                  <FormField label="Holiday date" htmlFor="holiday-date" error={holidayForm.formState.errors.holidayDate?.message}>
-                    <Input id="holiday-date" type="date" {...holidayForm.register("holidayDate")} />
-                  </FormField>
-                  <FormField label="Label" htmlFor="holiday-label" hint="Optional, for example Eid Holiday or National Day." error={holidayForm.formState.errors.label?.message}>
-                    <Input id="holiday-label" type="text" placeholder="Eid Holiday" {...holidayForm.register("label")} />
-                  </FormField>
-                </div>
-                {holidayMessage ? <div className={feedbackClasses[holidayMessage.tone]}>{holidayMessage.text}</div> : null}
-                <Button type="submit" variant="secondary" disabled={isSavingHoliday}>
-                  {isSavingHoliday ? "Saving holiday" : "Add holiday date"}
-                </Button>
-              </form>
-            ) : (
-              <div className="rounded-[1.3rem] border border-slate-200/80 bg-slate-50/80 px-4 py-4 text-sm leading-6 text-slate-600">
-                Individual workspaces do not need a separate holiday list. Team admins can manage holiday dates here when a shared overtime workspace is active.
-              </div>
-            )}
+      <Card>
+        <CardContent className="space-y-6 p-5 sm:p-6">
+          <SectionHeader
+            eyebrow="Holiday dates"
+            title="Holiday schedule"
+            description="Public holiday dates can be added manually so rest-day OT is calculated correctly."
+          />
 
+          {canManageHolidays ? (
+            <form className="space-y-5" onSubmit={onSubmitHoliday}>
+              <div className="grid gap-4 md:grid-cols-2">
+                <FormField label="Holiday date" htmlFor="holiday-date" error={holidayForm.formState.errors.holidayDate?.message}>
+                  <Input id="holiday-date" type="date" {...holidayForm.register("holidayDate")} />
+                </FormField>
+                <FormField label="Label" htmlFor="holiday-label" hint="Optional label such as Eid Holiday." error={holidayForm.formState.errors.label?.message}>
+                  <Input id="holiday-label" type="text" placeholder="Eid Holiday" {...holidayForm.register("label")} />
+                </FormField>
+              </div>
+              {holidayMessage ? <InlineMessage tone={holidayMessage.tone}>{holidayMessage.text}</InlineMessage> : null}
+              <Button type="submit" variant="secondary" disabled={isSavingHoliday}>
+                {isSavingHoliday ? "Saving holiday" : "Add holiday"}
+              </Button>
+            </form>
+          ) : (
+            <InlineMessage tone="info">Holiday dates are only needed in the team workflow. Individual users do not need a separate holiday list.</InlineMessage>
+          )}
+
+          {holidays.length ? (
             <div className="space-y-3">
-              {holidays.length ? holidays.map((holiday) => (
-                <div key={holiday.id} className="flex flex-col gap-3 rounded-[1.3rem] border border-slate-200/80 bg-slate-50/80 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="font-semibold text-slate-950">{formatOvertimeDate(holiday.date)}</p>
-                    <p className="mt-1 text-sm text-slate-500">{holiday.label || "Public holiday flag"}</p>
-                  </div>
-                  {canManageHolidays ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      disabled={isDeletingHolidayId === holiday.id}
-                      onClick={() => {
-                        setHolidayMessage(null);
-                        setIsDeletingHolidayId(holiday.id);
-                        startSavingHoliday(async () => {
-                          const result = await deleteOvertimeHolidayAction(holiday.id);
-                          setIsDeletingHolidayId(null);
-                          setHolidayMessage({
-                            tone: result.status === "success" ? "success" : "error",
-                            text: result.message,
+              {holidays.map((holiday) => (
+                <ListRow
+                  key={holiday.id}
+                  title={formatOvertimeDate(holiday.date)}
+                  subtitle={holiday.label || "Public holiday flag"}
+                  actions={
+                    canManageHolidays ? (
+                      <ConfirmationDialog
+                        title="Remove holiday date?"
+                        description="This will stop treating work on this date as a holiday in the OT calculation."
+                        confirmLabel={isDeletingHolidayId === holiday.id ? "Removing..." : "Remove holiday"}
+                        onConfirm={async () => {
+                          setHolidayMessage(null);
+                          setIsDeletingHolidayId(holiday.id);
+                          startSavingHoliday(async () => {
+                            const result = await deleteOvertimeHolidayAction(holiday.id);
+                            setIsDeletingHolidayId(null);
+                            setHolidayMessage({
+                              tone: result.status === "success" ? "success" : "error",
+                              text: result.message,
+                            });
+                            router.refresh();
                           });
-                          router.refresh();
-                        });
-                      }}
-                    >
-                      {isDeletingHolidayId === holiday.id ? "Removing" : "Remove"}
-                    </Button>
-                  ) : null}
-                </div>
-              )) : (
-                <div className="rounded-[1.3rem] border border-dashed border-slate-300 bg-slate-50/70 px-4 py-6 text-sm leading-6 text-slate-600">
-                  No holiday dates have been added yet.
-                </div>
-              )}
+                        }}
+                        trigger={
+                          <Button type="button" variant="outline" size="sm" disabled={isDeletingHolidayId === holiday.id}>
+                            Remove
+                          </Button>
+                        }
+                      />
+                    ) : undefined
+                  }
+                />
+              ))}
             </div>
-          </div>
-        </div>
-      </div>
+          ) : (
+            <EmptyState
+              icon={CalendarDays}
+              title="No holiday dates added yet"
+              description="Add only the dates your team needs for overtime treatment."
+            />
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

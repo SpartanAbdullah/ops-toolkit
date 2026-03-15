@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, CircleUserRound, CreditCard, Home, Menu, PercentCircle, ShieldCheck, Users2 } from "lucide-react";
+import { Bell, Menu, Package2 } from "lucide-react";
 
+import { MobileBottomNav } from "@/components/app/mobile-bottom-nav";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { Button } from "@/components/ui/button";
 import { IconTile } from "@/components/ui/icon-tile";
@@ -16,6 +17,13 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import {
+  getActiveAppIcon,
+  getActiveAppLabel,
+  matchesAppPath,
+  primaryAppNavItems,
+  secondaryAppNavItems,
+} from "@/lib/app/navigation";
 
 type AppShellProps = {
   children: React.ReactNode;
@@ -26,24 +34,19 @@ type AppShellProps = {
   unreadNotifications: number;
 };
 
-const appNavItems = [
-  { href: "/app", label: "Overview", icon: Home },
-  { href: "/app/petty-cash", label: "Petty Cash", icon: CreditCard },
-  { href: "/app/overtime", label: "Overtime", icon: PercentCircle },
-  { href: "/app/team", label: "Team", icon: Users2 },
-  { href: "/app/profile", label: "Profile", icon: CircleUserRound },
-  { href: "/app/settings", label: "Settings", icon: ShieldCheck },
-];
-
-function matchesPath(pathname: string, href: string) {
-  return href === "/app" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
-}
-
-function AppNav({ pathname, mobile = false }: { pathname: string; mobile?: boolean }) {
+function NavSection({
+  pathname,
+  items,
+  compact = false,
+}: {
+  pathname: string;
+  items: typeof primaryAppNavItems;
+  compact?: boolean;
+}) {
   return (
-    <nav className="grid gap-2">
-      {appNavItems.map((item) => {
-        const active = matchesPath(pathname, item.href);
+    <div className="grid gap-2">
+      {items.map((item) => {
+        const active = matchesAppPath(pathname, item.href);
         const Icon = item.icon;
 
         return (
@@ -51,116 +54,130 @@ function AppNav({ pathname, mobile = false }: { pathname: string; mobile?: boole
             key={item.href}
             href={item.href}
             className={cn(
-              "flex items-center gap-3 rounded-[1.2rem] border px-4 py-3 text-sm font-semibold transition duration-200",
-              active
-                ? "border-slate-900 bg-slate-950 text-white shadow-sm"
-                : "border-transparent text-slate-600 hover:border-slate-200 hover:bg-white/80 hover:text-slate-950",
-              mobile ? "bg-slate-50/80" : "",
+              "tap-highlight flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition",
+              active ? "bg-primary-50 text-primary-700" : "text-text-secondary hover:bg-slate-50 hover:text-text-primary",
+              compact ? "bg-white" : "",
             )}
           >
             <Icon className="h-4 w-4" />
-            {item.label}
+            <span>{item.label}</span>
           </Link>
         );
       })}
-    </nav>
+    </div>
   );
 }
 
 export function AppShell({ children, userName, email, roleLabel, activeTeamName, unreadNotifications }: AppShellProps) {
   const pathname = usePathname();
+  const currentLabel = getActiveAppLabel(pathname);
+  const ActiveIcon = getActiveAppIcon(pathname);
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.08),transparent_24%),radial-gradient(circle_at_85%_10%,rgba(167,139,250,0.08),transparent_24%),linear-gradient(180deg,rgba(255,255,255,0.94),rgba(248,250,252,0.98))]">
-      <div className="mx-auto flex min-h-screen max-w-[1560px] gap-6 px-4 py-4 lg:px-6 lg:py-6">
-        <aside className="sticky top-4 hidden h-[calc(100vh-2rem)] w-[290px] shrink-0 rounded-[2rem] border border-white/85 bg-white/88 p-5 shadow-card backdrop-blur xl:flex xl:flex-col">
-          <div className="flex items-center gap-3 border-b border-slate-200/70 pb-5">
-            <IconTile icon={Home} tone="purple" size="lg" />
-            <div>
-              <p className="font-display text-lg font-semibold text-slate-950">Ops Toolkit</p>
-              <p className="text-sm text-slate-500">Private workspace</p>
+    <div className="page-surface min-h-screen bg-app-background">
+      <header className="safe-top sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
+        <div className="mx-auto flex max-w-[1180px] items-center justify-between gap-3 px-4 py-3 sm:px-6">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="lg:hidden">
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="secondary" size="icon">
+                    <Menu className="h-5 w-5" />
+                    <span className="sr-only">Open navigation</span>
+                  </Button>
+                </SheetTrigger>
+                <SheetContent className="max-w-[92vw]">
+                  <SheetHeader>
+                    <div className="flex items-center gap-3">
+                      <IconTile icon={Package2} tone="blue" />
+                      <div>
+                        <SheetTitle>Ops Toolkit</SheetTitle>
+                        <SheetDescription>Fast access for field operations, OT, cash, and reports.</SheetDescription>
+                      </div>
+                    </div>
+                  </SheetHeader>
+                  <div className="mt-6 space-y-6 overflow-y-auto pb-6">
+                    <div className="rounded-3xl border border-border bg-primary-50 p-4">
+                      <p className="section-label">Current workspace</p>
+                      <p className="mt-2 text-lg font-semibold text-text-primary">{activeTeamName ?? "No team selected"}</p>
+                      <p className="mt-1 text-sm text-text-secondary">{roleLabel} access</p>
+                    </div>
+                    <div className="space-y-3">
+                      <p className="section-label">Main</p>
+                      <NavSection pathname={pathname} items={primaryAppNavItems} compact />
+                    </div>
+                    <div className="space-y-3">
+                      <p className="section-label">More</p>
+                      <NavSection pathname={pathname} items={secondaryAppNavItems} compact />
+                    </div>
+                    <div className="rounded-3xl border border-border bg-white p-4">
+                      <p className="font-semibold text-text-primary">{userName}</p>
+                      <p className="mt-1 text-sm text-text-secondary">{email}</p>
+                    </div>
+                    <SignOutButton variant="secondary" className="w-full justify-center" />
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
+            <IconTile icon={ActiveIcon} tone="blue" size="sm" className="hidden sm:inline-flex" />
+            <div className="min-w-0">
+              <p className="section-label">Workspace</p>
+              <p className="truncate text-base font-semibold text-text-primary sm:text-lg">{currentLabel}</p>
+              <p className="truncate text-sm text-text-secondary">{activeTeamName ?? "Set up your team workspace"}</p>
             </div>
           </div>
-          <div className="mt-6 flex-1 space-y-6 overflow-y-auto">
-            <div className="rounded-[1.5rem] border border-slate-200/80 bg-slate-50/80 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Current team</p>
-              <p className="mt-2 text-lg font-semibold text-slate-950">{activeTeamName ?? "No active team"}</p>
-              <p className="mt-1 text-sm text-slate-500">{roleLabel} access across saved modules and team workflows.</p>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="hidden rounded-2xl border border-border bg-white px-4 py-2 text-right md:block">
+              <p className="text-sm font-semibold text-text-primary">{userName}</p>
+              <p className="text-xs text-text-muted">{roleLabel}</p>
             </div>
-            <AppNav pathname={pathname} />
+            <div className="flex items-center gap-2 rounded-2xl border border-border bg-white px-3 py-2 text-sm text-text-primary shadow-sm">
+              <Bell className="h-4 w-4 text-primary-700" />
+              <span className="font-semibold">{unreadNotifications}</span>
+            </div>
           </div>
-          <div className="space-y-4 border-t border-slate-200/70 pt-5">
-            <div className="rounded-[1.5rem] border border-slate-200/80 bg-white px-4 py-4 shadow-sm">
-              <p className="font-semibold text-slate-950">{userName}</p>
-              <p className="mt-1 text-sm text-slate-500">{email}</p>
+        </div>
+      </header>
+
+      <div className="mx-auto grid max-w-[1280px] gap-6 px-4 py-4 lg:grid-cols-[260px_minmax(0,1fr)] lg:px-6 lg:py-6">
+        <aside className="hidden lg:block">
+          <div className="sticky top-24 space-y-4">
+            <div className="rounded-3xl border border-border bg-white p-5 shadow-card">
+              <div className="flex items-center gap-3">
+                <IconTile icon={Package2} tone="blue" size="md" />
+                <div>
+                  <p className="text-lg font-semibold text-text-primary">Ops Toolkit</p>
+                  <p className="text-sm text-text-secondary">Field-ready workspace</p>
+                </div>
+              </div>
+              <div className="mt-5 rounded-2xl bg-primary-50 p-4">
+                <p className="section-label">Team</p>
+                <p className="mt-2 text-lg font-semibold text-text-primary">{activeTeamName ?? "No team selected"}</p>
+                <p className="mt-1 text-sm text-text-secondary">{roleLabel} access</p>
+              </div>
             </div>
-            <div className="flex items-center justify-between rounded-[1.5rem] border border-slate-200/80 bg-slate-50/80 px-4 py-3 text-sm text-slate-600">
-              <span className="inline-flex items-center gap-2">
-                <Bell className="h-4 w-4 text-sky-600" />
-                Unread notifications
-              </span>
-              <span className="font-semibold text-slate-950">{unreadNotifications}</span>
+            <div className="rounded-3xl border border-border bg-white p-4 shadow-card">
+              <p className="section-label px-2 pb-2">Main</p>
+              <NavSection pathname={pathname} items={primaryAppNavItems} />
+              <div className="mt-4 border-t border-border pt-4">
+                <p className="section-label px-2 pb-2">More</p>
+                <NavSection pathname={pathname} items={secondaryAppNavItems} />
+              </div>
             </div>
-            <SignOutButton variant="secondary" className="w-full justify-center" />
+            <div className="rounded-3xl border border-border bg-white p-4 shadow-card">
+              <p className="font-semibold text-text-primary">{userName}</p>
+              <p className="mt-1 text-sm text-text-secondary">{email}</p>
+              <SignOutButton variant="secondary" className="mt-4 w-full justify-center" />
+            </div>
           </div>
         </aside>
-        <div className="flex min-w-0 flex-1 flex-col gap-6">
-          <header className="sticky top-4 z-30 rounded-[1.6rem] border border-white/85 bg-white/88 px-4 py-3 shadow-[0_18px_38px_-30px_rgba(15,23,42,0.35)] backdrop-blur md:px-5">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex min-w-0 items-center gap-3">
-                <div className="xl:hidden">
-                  <Sheet>
-                    <SheetTrigger asChild>
-                      <Button variant="outline" size="icon">
-                        <Menu className="h-5 w-5" />
-                        <span className="sr-only">Open app navigation</span>
-                      </Button>
-                    </SheetTrigger>
-                    <SheetContent className="max-w-[92vw] sm:max-w-sm">
-                      <SheetHeader>
-                        <div className="flex items-center gap-3">
-                          <IconTile icon={Home} tone="purple" />
-                          <div>
-                            <SheetTitle>Ops Toolkit</SheetTitle>
-                            <SheetDescription>Private workspace navigation and account access.</SheetDescription>
-                          </div>
-                        </div>
-                      </SheetHeader>
-                      <div className="mt-8 space-y-6">
-                        <div className="rounded-[1.4rem] border border-slate-200/80 bg-slate-50/80 px-4 py-4">
-                          <p className="font-semibold text-slate-950">{userName}</p>
-                          <p className="mt-1 text-sm text-slate-500">{email}</p>
-                        </div>
-                        <AppNav pathname={pathname} mobile />
-                        <div className="rounded-[1.4rem] border border-slate-200/80 bg-white px-4 py-4 text-sm text-slate-600 shadow-sm">
-                          <p className="font-semibold text-slate-950">{activeTeamName ?? "No active team"}</p>
-                          <p className="mt-1">{roleLabel} workspace access</p>
-                        </div>
-                        <SignOutButton variant="secondary" className="w-full justify-center" />
-                      </div>
-                    </SheetContent>
-                  </Sheet>
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Workspace</p>
-                  <p className="truncate text-lg font-semibold text-slate-950">{activeTeamName ?? "Set up your team workspace"}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="hidden rounded-[1.2rem] border border-slate-200/80 bg-slate-50/80 px-4 py-2 text-right lg:block">
-                  <p className="text-sm font-semibold text-slate-950">{userName}</p>
-                  <p className="text-xs text-slate-500">{roleLabel}</p>
-                </div>
-                <div className="inline-flex items-center gap-2 rounded-[1.2rem] border border-slate-200/80 bg-white px-4 py-2 shadow-sm">
-                  <Bell className="h-4 w-4 text-sky-600" />
-                  <span className="text-sm font-semibold text-slate-900">{unreadNotifications}</span>
-                </div>
-              </div>
-            </div>
-          </header>
-          <div className="flex-1">{children}</div>
-        </div>
+
+        <main className="min-w-0 pb-28 lg:pb-6">
+          <div className="app-page">{children}</div>
+        </main>
       </div>
+
+      <MobileBottomNav />
     </div>
   );
 }

@@ -5,8 +5,11 @@ import { AppPageHeader } from "@/components/app/app-page-header";
 import { CreateTeamForm, JoinTeamForm, RegenerateJoinCodeButton } from "@/components/app/team-forms";
 import { Badge } from "@/components/ui/badge";
 import { Callout } from "@/components/ui/callout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { IconTile } from "@/components/ui/icon-tile";
+import { Card, CardContent } from "@/components/ui/card";
+import { ListRow } from "@/components/ui/list-row";
+import { SectionHeader } from "@/components/ui/section-header";
+import { StatCard } from "@/components/ui/stat-card";
+import { SummaryBlock } from "@/components/ui/summary-block";
 import { getRoleBadgeVariant, getRoleLabel } from "@/lib/app/team";
 import { getAppContext } from "@/lib/app/session";
 import { prisma } from "@/lib/prisma";
@@ -54,153 +57,125 @@ export default async function TeamPage() {
     : null;
 
   return (
-    <div className="space-y-6 pb-10">
+    <div className="space-y-6">
       <AppPageHeader
-        eyebrow="Team"
-        badge={context.activeTeam ? "Shared workspace" : "No team yet"}
-        title="Create or join an operations team"
-        description="This is the first shared-data layer for Ops Toolkit. Admins can generate join codes, workers can join existing teams, and future modules will attach their saved records to this workspace."
+        eyebrow="Teams"
+        badge={context.activeTeam ? "Shared workspace active" : "No team yet"}
+        title="Create, join, and review your workspace team"
+        description="Keep team setup simple: one clear join code, visible member roles, and a structure that works on phone screens."
       />
+
       {!teamData ? (
         <div className="grid gap-6 xl:grid-cols-2">
           <Card>
-            <CardHeader>
-              <div className="flex items-center gap-4">
-                <IconTile icon={Users2} tone="purple" size="lg" />
-                <div>
-                  <CardTitle className="text-2xl">Create a new team</CardTitle>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">Start a workspace for your warehouse, HR desk, admin team, or operations unit.</p>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-5 p-5 sm:p-6">
+              <SectionHeader
+                eyebrow="Create"
+                title="Start a new team"
+                description="Set up a workspace for your warehouse, site, payroll desk, or admin operation."
+              />
               <CreateTeamForm />
             </CardContent>
           </Card>
+
           <Card>
-            <CardHeader>
-              <div className="flex items-center gap-4">
-                <IconTile icon={KeyRound} tone="blue" size="lg" />
-                <div>
-                  <CardTitle className="text-2xl">Join with a code</CardTitle>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">Use an active six-character code from a team admin to join an existing workspace.</p>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-5 p-5 sm:p-6">
+              <SectionHeader
+                eyebrow="Join"
+                title="Join an existing team"
+                description="Use the 6-character code from a team admin."
+              />
               <JoinTeamForm />
               <Callout
                 title="One active team per user for now"
-                description="The schema already supports broader team membership, but the current UI keeps the active workspace simple and obvious."
+                description="The model supports broader team membership later, but the current product keeps the active workspace simple."
                 icon={ShieldCheck}
                 tone="amber"
-              >
-                <p>That keeps the MVP clear while still leaving room for multi-team views later.</p>
-              </Callout>
+              />
             </CardContent>
           </Card>
         </div>
       ) : (
-        <div className="space-y-6">
-          <div className="grid gap-5 md:grid-cols-3">
-            <Card>
-              <CardHeader className="pb-4">
-                <div className="flex items-center justify-between gap-3">
-                  <CardTitle className="text-base">Current team</CardTitle>
-                  <IconTile icon={Users2} tone="purple" size="sm" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-semibold tracking-tight text-slate-950">{teamData.name}</p>
-                <p className="mt-3 text-sm leading-7 text-slate-600">Shared workspace foundation for saved records and approvals.</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-4">
-                <div className="flex items-center justify-between gap-3">
-                  <CardTitle className="text-base">Your access</CardTitle>
-                  <IconTile icon={ShieldCheck} tone="blue" size="sm" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <Badge variant={roleVariant}>{roleLabel}</Badge>
-                <p className="mt-3 text-sm leading-7 text-slate-600">Admins can rotate codes and manage rollout. Workers are ready for future assigned workflows.</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-4">
-                <div className="flex items-center justify-between gap-3">
-                  <CardTitle className="text-base">Members</CardTitle>
-                  <IconTile icon={Users2} tone="green" size="sm" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-semibold tracking-tight text-slate-950">{teamData.members.length}</p>
-                <p className="mt-3 text-sm leading-7 text-slate-600">The members list is already database-backed and ready for future role-aware modules.</p>
-              </CardContent>
-            </Card>
+        <>
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <StatCard
+              label="Current team"
+              value={teamData.name}
+              description="Your active workspace name."
+              icon={Users2}
+              tone="blue"
+            />
+            <StatCard
+              label="Your access"
+              value={<Badge variant={roleVariant}>{roleLabel}</Badge>}
+              description="Your current role in this workspace."
+              icon={ShieldCheck}
+              tone="green"
+            />
+            <StatCard
+              label="Members"
+              value={teamData.members.length}
+              description="People connected to this workspace."
+              icon={Users2}
+              tone="blue"
+            />
           </div>
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
+
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
             <Card>
-              <CardHeader>
-                <div className="flex items-center gap-4">
-                  <IconTile icon={KeyRound} tone="amber" size="lg" />
-                  <div>
-                    <CardTitle className="text-2xl">Team join code</CardTitle>
-                    <p className="mt-2 text-sm leading-6 text-slate-600">Share this with new team members so they can attach their account to the workspace.</p>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-5">
-                <div className="rounded-[1.7rem] border border-slate-200/80 bg-slate-50/80 px-6 py-6">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Active code</p>
-                  <p className="mt-3 font-display text-4xl font-semibold tracking-[0.22em] text-slate-950">{teamData.inviteCodes[0]?.code ?? "------"}</p>
-                </div>
+              <CardContent className="space-y-5 p-5 sm:p-6">
+                <SectionHeader
+                  eyebrow="Join code"
+                  title="Share this code with your team"
+                  description="New members use this code to attach their account to the workspace."
+                />
+                <SummaryBlock
+                  label="Active code"
+                  value={<span className="font-display text-3xl tracking-[0.22em]">{teamData.inviteCodes[0]?.code ?? "------"}</span>}
+                  hint="Rotate the code any time if you need a new invite."
+                  tone="primary"
+                />
                 {context.activeMembership?.role === TeamMemberRole.admin ? (
                   <RegenerateJoinCodeButton />
                 ) : (
                   <Callout
                     title="Only admins can rotate the code"
-                    description="Workers can view the team and their role, but code management stays with admins."
+                    description="Workers can view the code and team details, but admin users manage the invite flow."
                     icon={ShieldCheck}
                     tone="blue"
                   />
                 )}
               </CardContent>
             </Card>
+
             <Card>
-              <CardHeader>
-                <div className="flex items-center gap-4">
-                  <IconTile icon={Users2} tone="purple" size="lg" />
-                  <div>
-                    <CardTitle className="text-2xl">Team members</CardTitle>
-                    <p className="mt-2 text-sm leading-6 text-slate-600">Admin visibility into who is attached to the active workspace.</p>
-                  </div>
+              <CardContent className="space-y-5 p-5 sm:p-6">
+                <SectionHeader
+                  eyebrow="Members"
+                  title="People in this workspace"
+                  description="Member rows are optimized for quick scanning on mobile."
+                />
+                <div className="space-y-3">
+                  {teamData.members.map((member) => {
+                    const memberRoleLabel = getRoleLabel(member.role);
+                    const memberVariant = getRoleBadgeVariant(member.role);
+
+                    return (
+                      <ListRow
+                        key={member.id}
+                        title={member.user.profile?.fullName || member.user.email}
+                        subtitle={member.user.email}
+                        meta={member.createdAt.toLocaleDateString("en-AE", { dateStyle: "medium" })}
+                        badges={<Badge variant={memberVariant}>{memberRoleLabel}</Badge>}
+                        aside={member.role === TeamMemberRole.admin ? <Badge variant="blue">Admin</Badge> : <Badge variant="subtle">Member</Badge>}
+                      />
+                    );
+                  })}
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {teamData.members.map((member) => {
-                  const memberRoleLabel = getRoleLabel(member.role);
-                  const memberVariant = getRoleBadgeVariant(member.role);
-                  return (
-                    <div key={member.id} className="rounded-[1.4rem] border border-slate-200/80 bg-slate-50/80 px-4 py-4">
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                          <p className="font-semibold text-slate-950">{member.user.profile?.fullName || member.user.email}</p>
-                          <p className="mt-1 text-sm text-slate-500">{member.user.email}</p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <Badge variant={memberVariant}>{memberRoleLabel}</Badge>
-                          <p className="text-xs uppercase tracking-[0.18em] text-slate-400">{member.createdAt.toLocaleDateString("en-AE", { dateStyle: "medium" })}</p>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
               </CardContent>
             </Card>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

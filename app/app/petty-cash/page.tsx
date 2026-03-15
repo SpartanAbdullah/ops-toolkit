@@ -8,8 +8,11 @@ import { PettyCashTransactionSheet } from "@/components/app/petty-cash-transacti
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { IconTile } from "@/components/ui/icon-tile";
+import { Card, CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { SectionHeader } from "@/components/ui/section-header";
+import { StatCard } from "@/components/ui/stat-card";
+import { SummaryBlock } from "@/components/ui/summary-block";
 import { getAppContext } from "@/lib/app/session";
 import {
   buildRunningLedgerRows,
@@ -86,133 +89,114 @@ export default async function PettyCashPage({
   const filtersActive = Boolean(filters.from || filters.to || (filters.type && filters.type !== "all") || (filters.category && filters.category !== "all") || (filters.reimbursement && filters.reimbursement !== "all"));
 
   return (
-    <div className="space-y-6 pb-10">
+    <div className="space-y-6">
       <AppPageHeader
-        eyebrow="Petty Cash"
-        badge={hasAnyRows ? `${summary.transactionCount} ledger ${summary.transactionCount === 1 ? "entry" : "entries"}` : "Operator ledger"}
-        title="Track petty cash with a real running balance"
-        description="Record opening balance, top-ups, cash expenses, card expenses, reimbursements, and adjustments in one operator-friendly ledger. The module is now data-backed and ready for daily operational use."
+        eyebrow="Cash"
+        badge={hasAnyRows ? `${summary.transactionCount} entries` : "Operator ledger"}
+        title="Track petty cash without spreadsheet clutter"
+        description="See the live balance, recent movements, and reimbursement status in one mobile-friendly ledger."
         actions={
-          <div className="flex flex-wrap gap-3">
+          <>
             <PettyCashTransactionSheet
               buttonLabel={hasOpeningBalance ? "Add transaction" : "Set opening balance"}
               categories={categories}
               hasOpeningBalance={hasOpeningBalance}
             />
             <PettyCashExportButton rows={filteredRows} />
-          </div>
+          </>
         }
       />
 
       {!hasOpeningBalance ? (
         <Callout
-          title="Start by setting the opening balance"
-          description="The first ledger entry should define the starting petty cash float. After that, top-ups, expenses, reimbursements, and adjustments will all roll into the live balance automatically."
+          title="Start with the opening balance"
+          description="The first cash entry should be the opening float. After that, top-ups, expenses, reimbursements, and adjustments keep the running balance accurate."
           icon={Wallet}
           tone="amber"
         >
           <div className="flex flex-wrap gap-3">
             <PettyCashTransactionSheet buttonLabel="Set opening balance" categories={categories} hasOpeningBalance={false} />
-            <Badge variant="subtle">Single-operator ledger for MVP</Badge>
+            <Badge variant="subtle">Single-operator ledger</Badge>
           </div>
         </Callout>
       ) : null}
 
-      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-4">
-            <div className="flex items-center justify-between gap-3">
-              <CardTitle className="text-base">Current Cash Balance</CardTitle>
-              <IconTile icon={CircleDollarSign} tone="green" size="sm" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-semibold tracking-tight text-slate-950">{formatCurrency(summary.currentCashBalance)}</p>
-            <p className="mt-3 text-sm leading-7 text-slate-600">Running balance across entries that directly change cash on hand.</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-4">
-            <div className="flex items-center justify-between gap-3">
-              <CardTitle className="text-base">This Month Expenses</CardTitle>
-              <IconTile icon={ReceiptText} tone="red" size="sm" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-semibold tracking-tight text-slate-950">{formatCurrency(summary.thisMonthExpenses)}</p>
-            <p className="mt-3 text-sm leading-7 text-slate-600">Cash and card expenses logged during the current month.</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-4">
-            <div className="flex items-center justify-between gap-3">
-              <CardTitle className="text-base">Pending Reimbursement</CardTitle>
-              <IconTile icon={Hourglass} tone="amber" size="sm" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-semibold tracking-tight text-slate-950">{formatCurrency(summary.pendingReimbursementTotal)}</p>
-            <p className="mt-3 text-sm leading-7 text-slate-600">Submitted reimbursements that have not yet been received back.</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-4">
-            <div className="flex items-center justify-between gap-3">
-              <CardTitle className="text-base">Reimbursements Received</CardTitle>
-              <IconTile icon={HandCoins} tone="blue" size="sm" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-semibold tracking-tight text-slate-950">{formatCurrency(summary.reimbursementsReceivedTotal)}</p>
-            <p className="mt-3 text-sm leading-7 text-slate-600">Total reimbursements received back into the operating cycle.</p>
-          </CardContent>
-        </Card>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          label="Current balance"
+          value={formatCurrency(summary.currentCashBalance)}
+          description="Live cash on hand from the ledger."
+          icon={CircleDollarSign}
+          tone="green"
+        />
+        <StatCard
+          label="This month expenses"
+          value={formatCurrency(summary.thisMonthExpenses)}
+          description="Cash and card spend recorded this month."
+          icon={ReceiptText}
+          tone="blue"
+        />
+        <StatCard
+          label="Pending reimbursement"
+          value={formatCurrency(summary.pendingReimbursementTotal)}
+          description="Claims submitted but not received back yet."
+          icon={Hourglass}
+          tone="amber"
+        />
+        <StatCard
+          label="Reimbursements received"
+          value={formatCurrency(summary.reimbursementsReceivedTotal)}
+          description="Money returned back into the operating cycle."
+          icon={HandCoins}
+          tone="blue"
+        />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.75fr)]">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
         <PettyCashFilterBar filters={filters} categories={categories} />
         <Card>
-          <CardHeader className="border-b border-slate-100 pb-5">
-            <CardTitle className="text-2xl">How balance logic works</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4 pt-6 text-sm leading-7 text-slate-600">
-            <div className="rounded-[1.35rem] border border-emerald-100 bg-emerald-50/70 p-4">
-              <div className="flex items-center gap-3">
-                <ArrowUpRight className="h-4 w-4 text-emerald-600" />
-                <p><span className="font-semibold text-slate-900">Cash increases:</span> Opening Balance, Cash Top-Up, Reimbursement Received, and positive Adjustments.</p>
-              </div>
-            </div>
-            <div className="rounded-[1.35rem] border border-rose-100 bg-rose-50/70 p-4">
-              <div className="flex items-center gap-3">
-                <ArrowDownRight className="h-4 w-4 text-rose-600" />
-                <p><span className="font-semibold text-slate-900">Cash decreases:</span> Expense - Cash and negative Adjustments reduce cash on hand immediately.</p>
-              </div>
-            </div>
-            <div className="rounded-[1.35rem] border border-sky-100 bg-sky-50/70 p-4">
-              <p><span className="font-semibold text-slate-900">Tracked but not cash-impacting:</span> Expense - Card records spend visibility without changing cash. Reimbursement Submitted raises the pending reimbursement total until money is received.</p>
+          <CardContent className="space-y-5 p-5 sm:p-6">
+            <SectionHeader
+              eyebrow="How it works"
+              title="Balance logic at a glance"
+              description="These cues help casual users understand what changes cash on hand immediately."
+            />
+            <div className="grid gap-3">
+              <SummaryBlock
+                label="Cash increases"
+                value={<span className="inline-flex items-center gap-2"><ArrowUpRight className="h-4 w-4" /> Opening balance, top-ups, reimbursements received, positive adjustments</span>}
+                tone="success"
+              />
+              <SummaryBlock
+                label="Cash decreases"
+                value={<span className="inline-flex items-center gap-2"><ArrowDownRight className="h-4 w-4" /> Cash expenses and negative adjustments</span>}
+                tone="danger"
+              />
+              <SummaryBlock
+                label="Tracked only"
+                value="Card expenses and reimbursement submissions"
+                hint="These give visibility without changing physical cash immediately."
+                tone="default"
+              />
             </div>
           </CardContent>
         </Card>
       </div>
 
       {!hasAnyRows ? (
-        <Card>
-          <CardContent className="flex min-h-[260px] flex-col items-center justify-center gap-5 px-6 py-10 text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-[1.4rem] border border-slate-200 bg-white text-slate-600 shadow-sm">
-              <Wallet className="h-7 w-7" />
-            </div>
-            <div className="space-y-3">
-              <h2 className="font-display text-3xl font-semibold tracking-tight text-slate-950">Your petty cash ledger is empty</h2>
-              <p className="max-w-2xl text-sm leading-7 text-slate-600">Start with the opening balance, then add real movements as cash leaves the box, top-ups arrive, reimbursements are submitted or received, and manual adjustments are needed.</p>
-            </div>
-            <div className="flex flex-wrap justify-center gap-3">
+        <EmptyState
+          icon={Wallet}
+          title="Your petty cash ledger is empty"
+          description="Start with the opening balance, then add real movements as money leaves, comes back, or needs adjustment."
+          action={
+            <>
               <PettyCashTransactionSheet buttonLabel="Set opening balance" categories={categories} hasOpeningBalance={false} />
-              <Button asChild variant="outline">
-                <a href="/tools/petty-cash-tracker">View public tool card</a>
+              <Button asChild variant="secondary">
+                <a href="/tools/petty-cash-tracker">View public tool</a>
               </Button>
-            </div>
-          </CardContent>
-        </Card>
+            </>
+          }
+        />
       ) : null}
 
       <PettyCashLedger rows={filteredRows} hasAnyRows={hasAnyRows} filtersActive={filtersActive} />
