@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Bell, Menu, Package2 } from "lucide-react";
 
+import { InstallPwaBanner } from "@/components/app/install-pwa-banner";
 import { MobileBottomNav } from "@/components/app/mobile-bottom-nav";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { Button } from "@/components/ui/button";
@@ -173,7 +174,10 @@ export function AppShell({ children, userName, email, roleLabel, activeTeamName,
         </aside>
 
         <main className="min-w-0 pb-28 lg:pb-6">
-          <div className="app-page">{children}</div>
+          <div className="app-page">
+            <InstallPwaBanner />
+            {children}
+          </div>
         </main>
       </div>
 

@@ -1,98 +1,89 @@
-import Link from "next/link";
-import { ArrowRight, Calculator, FileCheck2, ShieldCheck } from "lucide-react";
-
-import { PageHero } from "@/components/sections/page-hero";
-import { SectionShell } from "@/components/sections/section-shell";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { IconTile } from "@/components/ui/icon-tile";
+import { LegalPageShell, LegalSection } from "@/components/legal/legal-page-shell";
 import { buildMetadata, siteConfig } from "@/lib/site";
 
-const termsSections = [
-  {
-    title: "Product scope",
-    body: "Ops Toolkit is a utility-oriented product for operational tracking, calculation, and workflow support. It does not replace legal, payroll, accounting, tax, or compliance advice.",
-    icon: ShieldCheck,
-    tone: "blue" as const,
-  },
-  {
-    title: "Public tools",
-    body: "Public tools, including the UAE Overtime Calculator and SKU Barcode Batch Generator, are provided for operational support and estimation purposes. Users remain responsible for confirming company policy, contracts, and legal requirements before relying on outputs.",
-    icon: Calculator,
-    tone: "amber" as const,
-  },
-  {
-    title: "Authenticated workspace",
-    body: "Private modules store user-entered operational data such as petty cash records, overtime entries, team membership, and payment checkpoints. Customers remain responsible for how they use the data operationally and who inside the business has access to it.",
-    icon: FileCheck2,
-    tone: "purple" as const,
-  },
-];
-
 export const metadata = buildMetadata({
-  title: "Terms",
+  title: "Terms of Service",
   description:
-    "Read the Ops Toolkit terms covering product scope, public tool usage, authenticated workspace responsibilities, and operational use boundaries.",
+    "Read the Ops Toolkit Terms of Service covering lawful use, account responsibility, user data, service availability, liability limits, and updates.",
   path: "/terms",
   keywords: ["ops toolkit terms", "operations software terms of use"],
 });
 
 export default function TermsPage() {
   return (
-    <div className="pb-20">
-      <PageHero
-        eyebrow="Terms"
-        title={
-          <>
-            Simple terms for a <span className="text-gradient">practical operations toolkit</span>
-          </>
-        }
-        description="These terms are written to keep the boundaries of the product clear without burying users in unnecessary legal filler."
-        actions={[
-          { label: "Contact us", href: "/contact" },
-          { label: "View privacy", href: "/privacy", variant: "secondary" },
-        ]}
-        note={`Effective ${siteConfig.legalEffectiveDate}. As the product expands into more workflow modules, these terms should be updated to match the actual feature set and customer commitments.`}
-      />
-      <SectionShell
-        title="Terms overview"
-        description="These points reflect the current product scope: public utilities, protected workspace modules, and a focused operational use case rather than a full enterprise suite."
-      >
-        <div className="grid gap-6 lg:grid-cols-3">
-          {termsSections.map((section) => (
-            <Card key={section.title}>
-              <CardHeader>
-                <div className="flex items-center gap-4">
-                  <IconTile icon={section.icon} tone={section.tone} />
-                  <CardTitle className="text-xl">{section.title}</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm leading-7 text-slate-600">{section.body}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </SectionShell>
-      <SectionShell
-        title="Questions about usage"
-        description="If you need clarification on how the product should be used in your operation, the contact route is the fastest way to get the right answer."
-      >
-        <Card>
-          <CardContent className="flex flex-col gap-6 pt-6 md:flex-row md:items-center md:justify-between">
-            <div className="max-w-2xl">
-              <p className="font-display text-2xl font-semibold text-slate-950">Need help understanding the scope?</p>
-              <p className="mt-3 text-sm leading-7 text-slate-600">Send the current workflow or use case so the team can respond with the right product, pricing, or rollout guidance.</p>
-            </div>
-            <Button asChild size="lg">
-              <Link href="/contact">
-                Contact Ops Toolkit
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </SectionShell>
-    </div>
+    <LegalPageShell
+      title="Terms of Service"
+      description="These Terms of Service explain the basic rules for using Ops Toolkit and the practical limits of the current service."
+      lastUpdated={siteConfig.legalEffectiveDate}
+      relatedLinks={[
+        { label: "Privacy Policy", href: "/privacy", variant: "secondary" },
+      ]}
+    >
+      <LegalSection title="What the service is for">
+        <p>
+          Ops Toolkit is designed to help teams run practical operational workflows such as overtime tracking, petty cash logging, team coordination, and related reporting.
+        </p>
+        <p>
+          The service is provided for operational support. It does not replace legal, accounting, tax, payroll, HR, or compliance advice.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="Lawful and acceptable use">
+        <p>You agree to use Ops Toolkit only for lawful business or operational purposes.</p>
+        <ul>
+          <li>Do not use the service to violate laws, regulations, contracts, or workplace obligations.</li>
+          <li>Do not attempt to access data, accounts, or systems you are not authorized to use.</li>
+          <li>Do not misuse the service in a way that disrupts normal operation or harms other users.</li>
+        </ul>
+      </LegalSection>
+
+      <LegalSection title="Account responsibility">
+        <p>
+          You are responsible for keeping your account credentials secure and for activity that happens through your account. If you believe your account has been compromised, you should act promptly to secure it.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="Your data">
+        <p>
+          You retain ownership of the data you enter into Ops Toolkit. That includes operational records such as overtime entries, petty cash logs, notes, team information, and related workspace data.
+        </p>
+        <p>
+          By using the service, you give Ops Toolkit permission to host, store, process, and display that data as needed to operate the product, secure the service, support features such as exports and reporting, and provide customer support.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="Availability and changes">
+        <p>
+          We aim to keep Ops Toolkit available and reliable, but the service is provided on an "as available" basis. Features may change, improve, or be removed over time, and temporary downtime may happen.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="Limitation of liability">
+        <p>
+          To the extent allowed by law, Ops Toolkit is not liable for indirect, incidental, special, consequential, or punitive damages arising from use of the service. Users remain responsible for reviewing their own records, workflows, and operational decisions before relying on them.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="Termination">
+        <p>
+          We may suspend or terminate access if the service is misused, if these terms are violated, or if continued access creates security, legal, or operational risk. You may also stop using the service at any time.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="Updates to these terms and contact">
+        <p>
+          We may update these Terms of Service as the product evolves. When we do, we will update the "Last updated" date on this page.
+        </p>
+        <p>
+          Questions about these terms can be sent to{" "}
+          <a
+            href={`mailto:${siteConfig.supportEmail}`}
+            className="font-semibold text-text-primary underline-offset-4 hover:underline"
+          >
+            {siteConfig.supportEmail}
+          </a>.
+        </p>
+      </LegalSection>
+    </LegalPageShell>
   );
 }

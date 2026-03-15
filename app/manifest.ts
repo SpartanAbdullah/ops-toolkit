@@ -14,6 +14,8 @@ export default function manifest(): MetadataRoute.Manifest {
     orientation: "portrait",
     background_color: "#F8FAFC",
     theme_color: "#2563EB",
+    categories: ["business", "productivity", "finance", "utilities"],
+    prefer_related_applications: false,
     icons: [
       {
         src: "/icon.svg",
@@ -31,16 +33,19 @@ export default function manifest(): MetadataRoute.Manifest {
       {
         name: "Overtime",
         short_name: "OT",
+        description: "Open overtime entry, approvals, and payment tracking.",
         url: "/app/overtime",
       },
       {
         name: "Petty Cash",
         short_name: "Cash",
+        description: "Open the petty cash ledger and add transactions.",
         url: "/app/petty-cash",
       },
       {
         name: "Reports",
         short_name: "Reports",
+        description: "Review export-ready overtime and cash summaries.",
         url: "/app/reports",
       },
     ],

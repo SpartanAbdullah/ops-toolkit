@@ -1,98 +1,96 @@
-import Link from "next/link";
-import { ArrowRight, Database, Mail, ShieldCheck } from "lucide-react";
-
-import { PageHero } from "@/components/sections/page-hero";
-import { SectionShell } from "@/components/sections/section-shell";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { IconTile } from "@/components/ui/icon-tile";
+import { LegalPageShell, LegalSection } from "@/components/legal/legal-page-shell";
 import { buildMetadata, siteConfig } from "@/lib/site";
-
-const privacySections = [
-  {
-    title: "Public pages and inquiry data",
-    body: "When you browse public pages or contact Ops Toolkit, information such as your name, email address, and workflow details may be used to respond to your request and understand product demand.",
-    icon: Mail,
-    tone: "blue" as const,
-  },
-  {
-    title: "Authenticated workspace data",
-    body: "Private workspace features store account, profile, team, petty cash, overtime, and notification data so the product can deliver saved workflows, filters, exports, and role-aware access. This data is only meant to support the product experience and related operational records.",
-    icon: Database,
-    tone: "purple" as const,
-  },
-  {
-    title: "Security and access",
-    body: "Authentication runs through Supabase Auth, while operational data is stored in Postgres and accessed through application-level authorization. Teams should still apply their own internal controls for who is allowed to enter or review operational records.",
-    icon: ShieldCheck,
-    tone: "green" as const,
-  },
-];
 
 export const metadata = buildMetadata({
   title: "Privacy Policy",
   description:
-    "Read the Ops Toolkit privacy policy covering public inquiries, authenticated workspace data, and how operational information is handled in the product.",
+    "Read the Ops Toolkit privacy policy covering account data, operational records, technical information, service providers, retention, and policy updates.",
   path: "/privacy",
   keywords: ["ops toolkit privacy", "operations software privacy policy"],
 });
 
 export default function PrivacyPage() {
   return (
-    <div className="pb-20">
-      <PageHero
-        eyebrow="Privacy Policy"
-        title={
-          <>
-            Clear privacy expectations for a <span className="text-gradient">focused operational product</span>
-          </>
-        }
-        description="This policy is intentionally concise and written to reflect the current product scope: public marketing pages, public tools, and a protected app workspace for saved operational workflows."
-        actions={[
-          { label: "Contact us", href: "/contact" },
-          { label: "View terms", href: "/terms", variant: "secondary" },
-        ]}
-        note={`Effective ${siteConfig.legalEffectiveDate}. This page should be reviewed again as storage, retention, or customer-specific data handling expands.`}
-      />
-      <SectionShell
-        title="Policy overview"
-        description="The product is still focused and staged, so the policy mirrors the current scope and signals where future updates will be needed as more workflows go live."
-      >
-        <div className="grid gap-6 lg:grid-cols-3">
-          {privacySections.map((section) => (
-            <Card key={section.title}>
-              <CardHeader>
-                <div className="flex items-center gap-4">
-                  <IconTile icon={section.icon} tone={section.tone} />
-                  <CardTitle className="text-xl">{section.title}</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm leading-7 text-slate-600">{section.body}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </SectionShell>
-      <SectionShell
-        title="Questions or requests"
-        description="If you need clarification on privacy, data handling, or operational record storage, use the contact route so the right context reaches the team quickly."
-      >
-        <Card>
-          <CardContent className="flex flex-col gap-6 pt-6 md:flex-row md:items-center md:justify-between">
-            <div className="max-w-2xl">
-              <p className="font-display text-2xl font-semibold text-slate-950">Need a privacy clarification?</p>
-              <p className="mt-3 text-sm leading-7 text-slate-600">Questions can be sent to {siteConfig.supportEmail} or through the contact page with the workflow or account context included.</p>
-            </div>
-            <Button asChild size="lg">
-              <Link href="/contact">
-                Contact Ops Toolkit
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </SectionShell>
-    </div>
+    <LegalPageShell
+      title="Privacy Policy"
+      description="This Privacy Policy explains what information Ops Toolkit may collect, how that information is used to operate the service, and the practical limits of the current product."
+      lastUpdated={siteConfig.legalEffectiveDate}
+      relatedLinks={[
+        { label: "Terms of Service", href: "/terms", variant: "secondary" },
+      ]}
+    >
+      <LegalSection title="What Ops Toolkit is">
+        <p>
+          Ops Toolkit is a lightweight operations product for teams that need faster day-to-day tools for workflows such as overtime tracking, petty cash logging, team setup, and reporting.
+        </p>
+        <p>
+          Some parts of Ops Toolkit are public, such as marketing pages and public tools. Other parts are private and require an account so users can save data and work inside an authenticated workspace.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="Information we may collect">
+        <p>We collect only the information needed to run the service and support users.</p>
+        <ul>
+          <li>Account information, such as name, email address, authentication details, and basic profile information.</li>
+          <li>Operational data entered into the product, such as team names, member roles, overtime entries, petty cash transactions, notes, dates, hours, amounts, statuses, and report filters.</li>
+          <li>Technical information, such as browser type, device type, IP address, log data, and basic diagnostic information generated when the app is used.</li>
+        </ul>
+      </LegalSection>
+
+      <LegalSection title="How we use information">
+        <ul>
+          <li>To create and manage user accounts and authenticated sessions.</li>
+          <li>To save, organize, display, and export the operational records users choose to enter.</li>
+          <li>To keep team workspaces, permissions, and role-based views functioning correctly.</li>
+          <li>To maintain security, investigate issues, and improve reliability and usability.</li>
+          <li>To respond to support requests, product questions, and service-related communications.</li>
+        </ul>
+      </LegalSection>
+
+      <LegalSection title="Data sharing and service providers">
+        <p>
+          Ops Toolkit does not sell personal data. We may use trusted infrastructure and software providers to host the application, authenticate users, store data, monitor reliability, and deliver core product functionality.
+        </p>
+        <p>
+          Those providers may process information on our behalf only as needed to operate the service. We do not share customer data for unrelated advertising or resale purposes.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="Security">
+        <p>
+          We use reasonable administrative and technical measures to protect the service, but no online system can promise absolute security. Users should also manage access carefully inside their own organizations, especially when operational or financial records are involved.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="Data retention">
+        <p>
+          We keep account and workspace data for as long as it is reasonably needed to operate the service, maintain records, resolve disputes, meet legal obligations, or support legitimate product administration.
+        </p>
+        <p>
+          Retention periods may vary depending on the type of data and the status of the account. We may delete or anonymize data when it is no longer reasonably needed.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="Children's privacy">
+        <p>
+          Ops Toolkit is intended for business and operational use and is not directed to children under 13. If you believe a child has provided personal information through the service, contact us and we will review the request.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="Policy updates and contact">
+        <p>
+          We may update this Privacy Policy as the product changes. When we do, we will update the "Last updated" date on this page.
+        </p>
+        <p>
+          Questions about this Privacy Policy can be sent to{" "}
+          <a
+            href={`mailto:${siteConfig.supportEmail}`}
+            className="font-semibold text-text-primary underline-offset-4 hover:underline"
+          >
+            {siteConfig.supportEmail}
+          </a>.
+        </p>
+      </LegalSection>
+    </LegalPageShell>
   );
 }
