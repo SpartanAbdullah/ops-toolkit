@@ -222,28 +222,38 @@ export function PettyCashTransactionSheet({
     setOpen(false);
 
     startTransition(async () => {
-      if (optimisticRow && pending) {
-        pending.addPending(optimisticRow);
-      }
-      const result = await createPettyCashTransactionAction(values);
-      if (result.status === "error") {
-        if (result.fieldErrors) {
-          Object.entries(result.fieldErrors).forEach(([field, error]) => {
-            if (error) setError(field as keyof PettyCashTransactionFormValues, { message: error });
-          });
+      try {
+        if (optimisticRow && pending) {
+          pending.addPending(optimisticRow);
         }
-        setMessage({ tone: "error", text: result.message });
+        const result = await createPettyCashTransactionAction(values);
+        if (result.status === "error") {
+          if (result.fieldErrors) {
+            Object.entries(result.fieldErrors).forEach(([field, error]) => {
+              if (error) setError(field as keyof PettyCashTransactionFormValues, { message: error });
+            });
+          }
+          setMessage({ tone: "error", text: result.message });
+          toast({ title: "Couldn't save transaction", description: result.message, tone: "error" });
+          skipNextResetRef.current = true;
+          setOpen(true);
+          return;
+        }
+        toast({
+          title: pettyCashTransactionTypeMeta[values.type].label + " saved",
+          description: result.message,
+          tone: "success",
+        });
+        reset(buildDefaultValues(defaultType, prefilledAmount));
+        router.refresh();
+      } catch (error) {
+        console.error("Failed to save petty cash transaction", error);
+        const message = error instanceof Error ? error.message : "Something went wrong on the server. Please try again.";
+        setMessage({ tone: "error", text: message });
+        toast({ title: "Couldn't save transaction", description: message, tone: "error" });
         skipNextResetRef.current = true;
         setOpen(true);
-        return;
       }
-      toast({
-        title: pettyCashTransactionTypeMeta[values.type].label + " saved",
-        description: result.message,
-        tone: "success",
-      });
-      reset(buildDefaultValues(defaultType, prefilledAmount));
-      router.refresh();
     });
   });
 

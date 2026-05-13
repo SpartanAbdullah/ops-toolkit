@@ -47,26 +47,40 @@ export function OvertimeEntryList({
     });
 
     startTransition(async () => {
-      const result = await approveOvertimeEntryQuickAction(row.id);
-      setApprovingIds((curr) => {
-        const next = new Set(curr);
-        next.delete(row.id);
-        return next;
-      });
-      if (result.status === "success") {
-        toast({
-          title: "Shift approved",
-          description: `${showWorkerName ? row.workerName + " · " : ""}${formatOvertimeDate(row.workedOn)} · ${row.amountLabel}`,
-          tone: "success",
+      try {
+        const result = await approveOvertimeEntryQuickAction(row.id);
+        setApprovingIds((curr) => {
+          const next = new Set(curr);
+          next.delete(row.id);
+          return next;
         });
-      } else {
+        if (result.status === "success") {
+          toast({
+            title: "Shift approved",
+            description: `${showWorkerName ? row.workerName + " · " : ""}${formatOvertimeDate(row.workedOn)} · ${row.amountLabel}`,
+            tone: "success",
+          });
+        } else {
+          toast({
+            title: "Couldn't approve",
+            description: result.message,
+            tone: "error",
+          });
+        }
+        router.refresh();
+      } catch (error) {
+        console.error("Failed to approve overtime entry", error);
+        setApprovingIds((curr) => {
+          const next = new Set(curr);
+          next.delete(row.id);
+          return next;
+        });
         toast({
           title: "Couldn't approve",
-          description: result.message,
+          description: error instanceof Error ? error.message : "Something went wrong on the server.",
           tone: "error",
         });
       }
-      router.refresh();
     });
   };
 
