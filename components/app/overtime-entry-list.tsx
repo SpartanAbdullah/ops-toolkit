@@ -99,6 +99,11 @@ function EntryCard({
         <div className="min-w-0 flex-1 space-y-1">
           <div className="flex flex-wrap items-center gap-1.5">
             <Badge variant={row.statusVariant}>{row.statusLabel}</Badge>
+            {row.isHoliday ? (
+              <Badge variant="amber">Holiday</Badge>
+            ) : row.isWeekend ? (
+              <Badge variant="navy">Rest day</Badge>
+            ) : null}
             {row.isModifiedApproval ? <Badge variant="amber">Adjusted</Badge> : null}
             {row.wellbeingWarning ? <Badge variant="rose">{"> 2h"}</Badge> : null}
           </div>

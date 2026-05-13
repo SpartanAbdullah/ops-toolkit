@@ -189,6 +189,11 @@ export function OvertimeEntrySheet({
 
             {/* Live preview */}
             <div className="rounded-2xl border border-border bg-surface-muted p-4">
+              {(preview.isWeekend || preview.isHoliday) && !preview.error ? (
+                <div className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-accent-50 px-3 py-1 text-2xs font-semibold uppercase tracking-wide text-accent-foreground">
+                  {preview.isHoliday ? "Public holiday" : "Rest day"} — every hour is OT
+                </div>
+              ) : null}
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <p className="text-2xs uppercase tracking-wide text-text-muted">Worked</p>

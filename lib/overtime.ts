@@ -127,6 +127,8 @@ export type OvertimeLedgerRow = {
   calculationSummary: string;
   rateDescription: string;
   isModifiedApproval: boolean;
+  isWeekend: boolean;
+  isHoliday: boolean;
 };
 
 export type OvertimeSummary = {
@@ -354,11 +356,14 @@ function buildCalculationSummary(input: {
   }
 
   if (input.calculationMode === "simple") {
-    return `Calculated from ${formatMinutesAsHours(input.overtimeMinutes)} at a fixed ${formatCurrency(input.rate ?? 0)} per hour.`;
+    if (input.isWeekend || input.isHoliday) {
+      return `${input.isHoliday ? "Public holiday" : "Rest day"} — all ${formatMinutesAsHours(input.totalWorkedMinutes)} count as OT at ${formatCurrency(input.rate ?? 0)}/hour.`;
+    }
+    return `${formatMinutesAsHours(input.overtimeMinutes)} above standard hours at ${formatCurrency(input.rate ?? 0)}/hour.`;
   }
 
   if (input.isWeekend || input.isHoliday) {
-    return `All ${formatMinutesAsHours(input.totalWorkedMinutes)} worked hours are treated at 1.5x the basic hourly rate on rest days or public holidays for this MVP.`;
+    return `All ${formatMinutesAsHours(input.totalWorkedMinutes)} worked hours are treated at 1.5x the basic hourly rate on rest days or public holidays.`;
   }
 
   if (input.nightOvertimeMinutes > 0 && input.dayOvertimeMinutes > 0) {
@@ -381,7 +386,11 @@ function buildRateDescription(input: {
   nightOvertimeMinutes: number;
 }) {
   if (input.calculationMode === "simple") {
-    return input.rate ? `Fixed overtime rate: ${formatCurrency(input.rate)} / hour` : "Fixed overtime rate not configured";
+    if (!input.rate) return "Fixed overtime rate not configured";
+    if (input.isWeekend || input.isHoliday) {
+      return `Fixed rate ${formatCurrency(input.rate)}/hour applied to every hour worked`;
+    }
+    return `Fixed overtime rate: ${formatCurrency(input.rate)} / hour`;
   }
 
   if (!input.rate) {
@@ -509,7 +518,12 @@ export function calculateOvertime(input: {
       };
     }
 
-    overtimeMinutes = Math.max(0, totalWorkedMinutes - standardMinutes);
+    if (isWeekend || isHoliday) {
+      // Rest day or public holiday — every hour worked is overtime, no standard-hours deduction
+      overtimeMinutes = totalWorkedMinutes;
+    } else {
+      overtimeMinutes = Math.max(0, totalWorkedMinutes - standardMinutes);
+    }
     dayOvertimeMinutes = overtimeMinutes;
     amount = roundCurrency((overtimeMinutes / MINUTES_PER_HOUR) * rate);
   } else {
@@ -740,6 +754,8 @@ export function buildOvertimeRows(
         nightOvertimeMinutes: entry.nightOvertimeMinutes,
       }),
       isModifiedApproval: effective.modified,
+      isWeekend: entry.isWeekend,
+      isHoliday: entry.isHoliday,
     };
   });
 }

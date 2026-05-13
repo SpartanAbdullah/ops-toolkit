@@ -204,7 +204,7 @@ export function OvertimeSettingsForm({
           <SectionHeader
             eyebrow="Public holidays"
             title="Holiday schedule"
-            description="Add UAE public holiday dates so rest-day OT is calculated correctly."
+            description="Mark UAE public holidays here. Any shift logged on these dates is paid as full overtime — every worked hour at your OT rate, no standard-hours deduction."
           />
 
           {canManageHolidays ? (
