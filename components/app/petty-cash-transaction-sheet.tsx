@@ -18,6 +18,7 @@ import { Select } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { StickyActionBar } from "@/components/ui/sticky-action-bar";
 import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
 import {
   formatCashImpact,
@@ -110,6 +111,8 @@ export function PettyCashTransactionSheet({
   const searchParams = useSearchParams();
   const categoryListId = useId();
   const pending = usePettyCashPending();
+  const toast = useToast();
+  const skipNextResetRef = useRef(false);
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -166,6 +169,11 @@ export function PettyCashTransactionSheet({
 
   useEffect(() => {
     if (!open) return;
+    if (skipNextResetRef.current) {
+      // Re-opened after an error — keep the form values so the user doesn't lose their work
+      skipNextResetRef.current = false;
+      return;
+    }
     const defaults = buildDefaultValues(defaultType, prefilledAmount);
     suggestedCategoryRef.current = defaults.category;
     reset(defaults);
@@ -224,11 +232,17 @@ export function PettyCashTransactionSheet({
             if (error) setError(field as keyof PettyCashTransactionFormValues, { message: error });
           });
         }
-        // Re-open the sheet to surface the error
         setMessage({ tone: "error", text: result.message });
+        skipNextResetRef.current = true;
         setOpen(true);
         return;
       }
+      toast({
+        title: pettyCashTransactionTypeMeta[values.type].label + " saved",
+        description: result.message,
+        tone: "success",
+      });
+      reset(buildDefaultValues(defaultType, prefilledAmount));
       router.refresh();
     });
   });

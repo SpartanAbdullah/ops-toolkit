@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 
 import { AuthProvider } from "@/components/providers/auth-provider";
+import { Toaster } from "@/components/ui/toaster";
 import { siteConfig } from "@/lib/site";
 
 import "./globals.css";
@@ -57,7 +58,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en" className={`${inter.variable} ${jakarta.variable}`}>
       <body>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <Toaster>{children}</Toaster>
+        </AuthProvider>
       </body>
     </html>
   );

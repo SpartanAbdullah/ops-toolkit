@@ -1,18 +1,18 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 
 import { updateProfileAction } from "@/app/app/actions";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
-import { InlineMessage } from "@/components/ui/inline-message";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/components/ui/toaster";
 import { profileSchema, type ProfileValues } from "@/lib/validation/profile";
 
 export function ProfileForm({ defaultValues }: { defaultValues: ProfileValues }) {
-  const [formMessage, setFormMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
+  const toast = useToast();
   const [isPending, startTransition] = useTransition();
   const {
     register,
@@ -25,7 +25,6 @@ export function ProfileForm({ defaultValues }: { defaultValues: ProfileValues })
   });
 
   const onSubmit = handleSubmit((values) => {
-    setFormMessage(null);
     startTransition(async () => {
       const result = await updateProfileAction(values);
       if (result.status === "error") {
@@ -34,10 +33,10 @@ export function ProfileForm({ defaultValues }: { defaultValues: ProfileValues })
             if (message) setError(field as keyof ProfileValues, { message });
           });
         }
-        setFormMessage({ tone: "error", text: result.message });
+        toast({ title: "Couldn't save profile", description: result.message, tone: "error" });
         return;
       }
-      setFormMessage({ tone: "success", text: result.message });
+      toast({ title: "Profile updated", tone: "success" });
     });
   });
 
@@ -49,7 +48,6 @@ export function ProfileForm({ defaultValues }: { defaultValues: ProfileValues })
       <FormField label="Phone" htmlFor="profile-phone" optional hint="For payroll and admin follow-up." error={errors.phone?.message}>
         <Input id="profile-phone" type="tel" placeholder="+971 50 123 4567" autoComplete="tel" {...register("phone")} />
       </FormField>
-      {formMessage ? <InlineMessage tone={formMessage.tone}>{formMessage.text}</InlineMessage> : null}
       <Button type="submit" disabled={isPending || !isDirty}>
         {isPending ? "Saving..." : "Save profile"}
       </Button>

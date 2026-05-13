@@ -14,6 +14,7 @@ import { InlineMessage } from "@/components/ui/inline-message";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { StickyActionBar } from "@/components/ui/sticky-action-bar";
+import { useToast } from "@/components/ui/toaster";
 import { formatCurrency } from "@/lib/utils";
 import { overtimeWorkerCompensationSchema, type OvertimeWorkerCompensationValues } from "@/lib/validation/overtime";
 
@@ -33,6 +34,7 @@ export function OvertimeCompensationSheet({
   buttonSize?: ButtonProps["size"];
 }) {
   const router = useRouter();
+  const toast = useToast();
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -72,7 +74,11 @@ export function OvertimeCompensationSheet({
         setMessage({ tone: "error", text: result.message });
         return;
       }
-      setMessage({ tone: "success", text: result.message });
+      toast({
+        title: "Salary saved",
+        description: `${workerName} · ${formatCurrency(Number(values.basicMonthlySalary))}`,
+        tone: "success",
+      });
       setOpen(false);
       router.refresh();
     });

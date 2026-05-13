@@ -9,6 +9,8 @@ import { OvertimeEntrySheet } from "@/components/app/overtime-entry-sheet";
 import { OvertimeExportButton } from "@/components/app/overtime-export-button";
 import { OvertimeFilterBar } from "@/components/app/overtime-filter-bar";
 import { OvertimePaymentSheet } from "@/components/app/overtime-payment-sheet";
+import { OvertimePendingProvider } from "@/components/app/overtime-pending-provider";
+import { OvertimePendingRows } from "@/components/app/overtime-pending-rows";
 import { OvertimeSettingsForm } from "@/components/app/overtime-settings-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -214,6 +216,7 @@ export default async function OvertimePage({
     settingsSnapshot.calculationMode === "mohre_compliant" ? memberRows.filter((member) => member.salary == null) : [];
 
   return (
+    <OvertimePendingProvider>
     <div className="space-y-5 animate-fade-up">
       <AppPageHeader
         eyebrow="Overtime"
@@ -355,6 +358,7 @@ export default async function OvertimePage({
             workers={isAdmin ? memberRows.map((member) => ({ id: member.id, name: member.name })) : []}
             tab="entries"
           />
+          <OvertimePendingRows />
           <OvertimeEntryList
             rows={filteredRows}
             hasAnyRows={rows.length > 0}
@@ -385,6 +389,7 @@ export default async function OvertimePage({
               tone="mint"
             />
           )}
+          <OvertimePendingRows />
           <OvertimeEntryList
             rows={pendingRows}
             hasAnyRows={rows.length > 0}
@@ -473,6 +478,8 @@ export default async function OvertimePage({
         </div>
       ) : null}
 
+      {activeTab !== "entries" && activeTab !== "approvals" ? <OvertimePendingRows /> : null}
+
       {activeTab === "payments" && activeTeamId && isAdmin ? (
         <div className="space-y-4">
           <Card>
@@ -534,5 +541,6 @@ export default async function OvertimePage({
         </div>
       ) : null}
     </div>
+    </OvertimePendingProvider>
   );
 }

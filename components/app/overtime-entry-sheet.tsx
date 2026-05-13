@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Clock3, MoonStar, Plus, ShieldCheck } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { createOvertimeEntryAction } from "@/app/app/overtime/actions";
+import { useOvertimePending } from "@/components/app/overtime-pending-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
@@ -16,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { StickyActionBar } from "@/components/ui/sticky-action-bar";
 import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/components/ui/toaster";
 import { formatCurrency } from "@/lib/utils";
 import {
   calculateOvertime,
@@ -58,6 +60,9 @@ export function OvertimeEntrySheet({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pending = useOvertimePending();
+  const toast = useToast();
+  const skipNextResetRef = useRef(false);
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -89,7 +94,10 @@ export function OvertimeEntrySheet({
   const overnight = watch("overnight");
 
   useEffect(() => {
-    if (!open) {
+    if (!open) return;
+    if (skipNextResetRef.current) {
+      // Re-opened after an error — keep the form values so the user doesn't lose their work
+      skipNextResetRef.current = false;
       return;
     }
     reset(buildDefaultValues());
@@ -114,7 +122,29 @@ export function OvertimeEntrySheet({
 
   const onSubmit = handleSubmit((values) => {
     setMessage(null);
+    // Build optimistic snapshot before the transition starts (preview is already calculated)
+    const optimisticRow = pending && !preview.error
+      ? {
+          tempId: `temp-${Date.now()}`,
+          workedDate: values.workedDate,
+          startTimeLabel: values.startTime,
+          endTimeLabel: values.endTime,
+          overnight: values.overnight,
+          totalWorkedLabel: formatMinutesAsHours(preview.totalWorkedMinutes),
+          overtimeLabel: formatMinutesAsHours(preview.overtimeMinutes),
+          amountLabel: formatCurrency(preview.amount),
+          isWeekend: preview.isWeekend,
+          isHoliday: preview.isHoliday,
+        }
+      : null;
+
+    // Close instantly for snappy UX
+    setOpen(false);
+
     startTransition(async () => {
+      if (optimisticRow && pending) {
+        pending.addPending(optimisticRow);
+      }
       const result = await createOvertimeEntryAction(values);
       if (result.status === "error") {
         if (result.fieldErrors) {
@@ -125,10 +155,16 @@ export function OvertimeEntrySheet({
           });
         }
         setMessage({ tone: "error", text: result.message });
+        skipNextResetRef.current = true;
+        setOpen(true);
         return;
       }
-      setMessage({ tone: "success", text: result.message });
-      setOpen(false);
+      toast({
+        title: "Shift saved",
+        description: result.message,
+        tone: "success",
+      });
+      reset(buildDefaultValues());
       router.refresh();
     });
   });

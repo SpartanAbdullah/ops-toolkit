@@ -16,6 +16,7 @@ import { Select } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { StickyActionBar } from "@/components/ui/sticky-action-bar";
 import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/components/ui/toaster";
 import { formatOvertimeDate, overtimeReviewDecisions, type OvertimeLedgerRow } from "@/lib/overtime";
 import { overtimeReviewSchema, type OvertimeReviewValues } from "@/lib/validation/overtime";
 
@@ -41,6 +42,7 @@ export function OvertimeApprovalSheet({
   buttonSize?: ButtonProps["size"];
 }) {
   const router = useRouter();
+  const toast = useToast();
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -77,7 +79,11 @@ export function OvertimeApprovalSheet({
         setMessage({ tone: "error", text: result.message });
         return;
       }
-      setMessage({ tone: "success", text: result.message });
+      toast({
+        title: values.decision === "rejected" ? "Shift rejected" : "Decision saved",
+        description: `${entry.workerName} · ${formatOvertimeDate(entry.workedOn)}`,
+        tone: values.decision === "rejected" ? "warning" : "success",
+      });
       setOpen(false);
       router.refresh();
     });

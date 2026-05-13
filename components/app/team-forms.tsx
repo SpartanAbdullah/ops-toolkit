@@ -11,6 +11,7 @@ import { FormField } from "@/components/ui/form-field";
 import { InlineMessage } from "@/components/ui/inline-message";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { useToast } from "@/components/ui/toaster";
 import {
   getDefaultWeekendDays,
   overtimeCalculationModes,
@@ -20,6 +21,7 @@ import { createTeamSchema, joinTeamSchema, type CreateTeamValues, type JoinTeamV
 
 export function CreateTeamForm() {
   const router = useRouter();
+  const toast = useToast();
   const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const [isPending, startTransition] = useTransition();
   const {
@@ -70,6 +72,11 @@ export function CreateTeamForm() {
         ramadanEndDate: "",
       });
       setMessage({ tone: "success", text: result.message });
+      toast({
+        title: "Team created",
+        description: result.data?.joinCode ? `Join code: ${result.data.joinCode}` : undefined,
+        tone: "success",
+      });
       router.refresh();
     });
   });
@@ -151,6 +158,7 @@ export function CreateTeamForm() {
 
 export function JoinTeamForm() {
   const router = useRouter();
+  const toast = useToast();
   const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const [isPending, startTransition] = useTransition();
   const {
@@ -175,6 +183,7 @@ export function JoinTeamForm() {
         return;
       }
       setMessage({ tone: "success", text: result.message });
+      toast({ title: "Joined team", description: result.data?.teamName, tone: "success" });
       router.refresh();
     });
   });
@@ -194,31 +203,32 @@ export function JoinTeamForm() {
 
 export function RegenerateJoinCodeButton() {
   const router = useRouter();
-  const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
+  const toast = useToast();
   const [isPending, startTransition] = useTransition();
 
   return (
-    <div className="space-y-3">
-      {message ? <InlineMessage tone={message.tone}>{message.text}</InlineMessage> : null}
-      <Button
-        type="button"
-        variant="secondary"
-        size="sm"
-        onClick={() => {
-          setMessage(null);
-          startTransition(async () => {
-            const result = await regenerateJoinCodeAction();
-            setMessage({
-              tone: result.status === "success" ? "success" : "error",
-              text: result.status === "success" ? `New code: ${result.data?.joinCode}` : result.message,
+    <Button
+      type="button"
+      variant="secondary"
+      size="sm"
+      onClick={() => {
+        startTransition(async () => {
+          const result = await regenerateJoinCodeAction();
+          if (result.status === "success") {
+            toast({
+              title: "New join code generated",
+              description: result.data?.joinCode ? `Active code: ${result.data.joinCode}` : undefined,
+              tone: "success",
             });
-            router.refresh();
-          });
-        }}
-        disabled={isPending}
-      >
-        {isPending ? "Rotating..." : "Generate new code"}
-      </Button>
-    </div>
+          } else {
+            toast({ title: "Couldn't rotate code", description: result.message, tone: "error" });
+          }
+          router.refresh();
+        });
+      }}
+      disabled={isPending}
+    >
+      {isPending ? "Rotating..." : "Generate new code"}
+    </Button>
   );
 }

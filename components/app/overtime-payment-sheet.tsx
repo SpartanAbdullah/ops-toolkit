@@ -17,7 +17,8 @@ import { SearchField } from "@/components/ui/search-field";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { StickyActionBar } from "@/components/ui/sticky-action-bar";
 import { Textarea } from "@/components/ui/textarea";
-import { getTodayInputValue } from "@/lib/overtime";
+import { useToast } from "@/components/ui/toaster";
+import { formatOvertimeDate, getTodayInputValue } from "@/lib/overtime";
 import { cn } from "@/lib/utils";
 import { overtimePaymentSchema, type OvertimePaymentValues } from "@/lib/validation/overtime";
 
@@ -40,6 +41,7 @@ export function OvertimePaymentSheet({
   preselectedWorkerId?: string;
 }) {
   const router = useRouter();
+  const toast = useToast();
   const [open, setOpen] = useState(false);
   const [workerQuery, setWorkerQuery] = useState("");
   const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
@@ -93,7 +95,12 @@ export function OvertimePaymentSheet({
         setMessage({ tone: "error", text: result.message });
         return;
       }
-      setMessage({ tone: "success", text: result.message });
+      const workerName = workers.find((w) => w.id === values.workerUserId)?.name ?? "Worker";
+      toast({
+        title: "Payment recorded",
+        description: `${workerName} · paid through ${formatOvertimeDate(values.paidUntilDate)}`,
+        tone: "success",
+      });
       setOpen(false);
       router.refresh();
     });

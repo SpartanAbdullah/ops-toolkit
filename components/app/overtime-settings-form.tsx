@@ -21,6 +21,7 @@ import { InlineMessage } from "@/components/ui/inline-message";
 import { Input } from "@/components/ui/input";
 import { SectionHeader } from "@/components/ui/section-header";
 import { Select } from "@/components/ui/select";
+import { useToast } from "@/components/ui/toaster";
 import {
   formatOvertimeDate,
   overtimeCalculationModes,
@@ -45,6 +46,7 @@ export function OvertimeSettingsForm({
   canManageHolidays: boolean;
 }) {
   const router = useRouter();
+  const toast = useToast();
   const [settingsMessage, setSettingsMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const [holidayMessage, setHolidayMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const [isSavingSettings, startSavingSettings] = useTransition();
@@ -81,6 +83,7 @@ export function OvertimeSettingsForm({
         return;
       }
       setSettingsMessage({ tone: "success", text: result.message });
+      toast({ title: "Overtime settings saved", tone: "success" });
       router.refresh();
     });
   });
@@ -100,6 +103,11 @@ export function OvertimeSettingsForm({
       }
       holidayForm.reset({ holidayDate: "", label: "" });
       setHolidayMessage({ tone: "success", text: result.message });
+      toast({
+        title: "Holiday added",
+        description: `${formatOvertimeDate(values.holidayDate)}${values.label ? ` · ${values.label}` : ""}`,
+        tone: "success",
+      });
       router.refresh();
     });
   });
@@ -246,6 +254,11 @@ export function OvertimeSettingsForm({
                           const result = await deleteOvertimeHolidayAction(holiday.id);
                           setIsDeletingHolidayId(null);
                           setHolidayMessage({ tone: result.status === "success" ? "success" : "error", text: result.message });
+                          toast({
+                            title: result.status === "success" ? "Holiday removed" : "Couldn't remove holiday",
+                            description: result.status === "success" ? formatOvertimeDate(holiday.date) : result.message,
+                            tone: result.status === "success" ? "info" : "error",
+                          });
                           router.refresh();
                         });
                       }}
