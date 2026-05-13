@@ -142,30 +142,40 @@ export function OvertimeEntrySheet({
     setOpen(false);
 
     startTransition(async () => {
-      if (optimisticRow && pending) {
-        pending.addPending(optimisticRow);
-      }
-      const result = await createOvertimeEntryAction(values);
-      if (result.status === "error") {
-        if (result.fieldErrors) {
-          Object.entries(result.fieldErrors).forEach(([field, error]) => {
-            if (error) {
-              setError(field as keyof OvertimeEntryValues, { message: error });
-            }
-          });
+      try {
+        if (optimisticRow && pending) {
+          pending.addPending(optimisticRow);
         }
-        setMessage({ tone: "error", text: result.message });
+        const result = await createOvertimeEntryAction(values);
+        if (result.status === "error") {
+          if (result.fieldErrors) {
+            Object.entries(result.fieldErrors).forEach(([field, error]) => {
+              if (error) {
+                setError(field as keyof OvertimeEntryValues, { message: error });
+              }
+            });
+          }
+          setMessage({ tone: "error", text: result.message });
+          toast({ title: "Couldn't save shift", description: result.message, tone: "error" });
+          skipNextResetRef.current = true;
+          setOpen(true);
+          return;
+        }
+        toast({
+          title: "Shift saved",
+          description: result.message,
+          tone: "success",
+        });
+        reset(buildDefaultValues());
+        router.refresh();
+      } catch (error) {
+        console.error("Failed to save overtime entry", error);
+        const message = error instanceof Error ? error.message : "Something went wrong on the server. Please try again.";
+        setMessage({ tone: "error", text: message });
+        toast({ title: "Couldn't save shift", description: message, tone: "error" });
         skipNextResetRef.current = true;
         setOpen(true);
-        return;
       }
-      toast({
-        title: "Shift saved",
-        description: result.message,
-        tone: "success",
-      });
-      reset(buildDefaultValues());
-      router.refresh();
     });
   });
 

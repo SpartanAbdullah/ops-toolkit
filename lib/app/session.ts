@@ -1,4 +1,4 @@
-import { AppRole } from "@prisma/client";
+import { AppRole, Prisma } from "@prisma/client";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
@@ -6,6 +6,10 @@ import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { prisma } from "@/lib/prisma";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { mapMembershipRoleToAppRole } from "@/lib/app/team";
+
+function isUniqueConstraintError(error: unknown): boolean {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
+}
 
 const USER_INCLUDE = {
   profile: true,
@@ -24,27 +28,39 @@ function extractFullName(authUser: SupabaseUser) {
 }
 
 async function ensureUserRecord(authUser: SupabaseUser) {
-  const existingUser = await prisma.user.findUnique({
+  let existingUser = await prisma.user.findUnique({
     where: { id: authUser.id },
     include: USER_INCLUDE,
   });
 
-  // First-time login — create everything in one round trip
+  // First-time login — create the User + Profile together. If a concurrent request
+  // won the race, P2002 fires; fall back to fetching what they wrote.
   if (!existingUser) {
-    return prisma.user.create({
-      data: {
-        id: authUser.id,
-        email: authUser.email ?? "",
-        role: AppRole.individual,
-        profile: {
-          create: {
-            fullName: extractFullName(authUser),
-            phone: authUser.phone ?? null,
+    try {
+      return await prisma.user.create({
+        data: {
+          id: authUser.id,
+          email: authUser.email ?? "",
+          role: AppRole.individual,
+          profile: {
+            create: {
+              fullName: extractFullName(authUser),
+              phone: authUser.phone ?? null,
+            },
           },
         },
-      },
-      include: USER_INCLUDE,
-    });
+        include: USER_INCLUDE,
+      });
+    } catch (error) {
+      if (!isUniqueConstraintError(error)) {
+        throw error;
+      }
+      // Concurrent request created the user — re-fetch and fall through to reconciliation
+      existingUser = await prisma.user.findUniqueOrThrow({
+        where: { id: authUser.id },
+        include: USER_INCLUDE,
+      });
+    }
   }
 
   // Figure out what (if anything) needs reconciling
@@ -83,51 +99,42 @@ async function ensureUserRecord(authUser: SupabaseUser) {
     return existingUser;
   }
 
-  // Slow path — only when reconciliation is genuinely needed. Run both fixups in parallel.
-  const [updatedUser] = await Promise.all([
+  // Slow path — reconciliation needed. Run both fixups in parallel.
+  // Each one swallows P2002 so a concurrent request doing the same thing doesn't crash this one.
+  await Promise.all([
     needsUserUpdate
-      ? prisma.user.update({
-          where: { id: existingUser.id },
-          data: updates,
-          include: USER_INCLUDE,
-        })
-      : Promise.resolve(existingUser),
+      ? prisma.user
+          .update({
+            where: { id: existingUser.id },
+            data: updates,
+          })
+          .catch((error) => {
+            if (isUniqueConstraintError(error)) return null;
+            throw error;
+          })
+      : Promise.resolve(null),
     needsProfileCreate
-      ? prisma.profile.create({
-          data: {
-            userId: existingUser.id,
-            fullName: extractFullName(authUser),
-            phone: authUser.phone ?? null,
-          },
-        })
+      ? prisma.profile
+          .create({
+            data: {
+              userId: existingUser.id,
+              fullName: extractFullName(authUser),
+              phone: authUser.phone ?? null,
+            },
+          })
+          .catch((error) => {
+            // Profile created by a concurrent request — that's fine, swallow it
+            if (isUniqueConstraintError(error)) return null;
+            throw error;
+          })
       : Promise.resolve(null),
   ]);
 
-  // If we created a profile but didn't update the user, the cached user object lacks the profile.
-  // Stitch it together instead of re-fetching.
-  if (needsProfileCreate && !needsUserUpdate) {
-    return {
-      ...updatedUser,
-      profile: {
-        userId: existingUser.id,
-        fullName: extractFullName(authUser),
-        phone: authUser.phone ?? null,
-        timezone: "Asia/Dubai",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    };
-  }
-
-  // If we updated the user but didn't have a profile and created one, re-fetch once with everything
-  if (needsProfileCreate) {
-    return prisma.user.findUniqueOrThrow({
-      where: { id: authUser.id },
-      include: USER_INCLUDE,
-    });
-  }
-
-  return updatedUser;
+  // Re-fetch once to return a consistent state regardless of which paths ran
+  return prisma.user.findUniqueOrThrow({
+    where: { id: existingUser.id },
+    include: USER_INCLUDE,
+  });
 }
 
 export const getAppContext = cache(async () => {
