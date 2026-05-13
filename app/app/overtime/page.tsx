@@ -244,36 +244,53 @@ export default async function OvertimePage({
         }
       />
 
-      {/* Headline stats */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard
-          label="This month OT"
-          value={formatCurrency(summary.approvedAmountThisMonth)}
-          description={`${formatMinutesAsHours(summary.approvedHoursThisMonth)} approved`}
-          icon={Clock3}
-          tone="amber"
+      {/* Spotlight hero */}
+      <div className="relative overflow-hidden rounded-2xl border border-primary-700 bg-primary-700 text-white shadow-elevated">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(245,158,11,0.35), transparent 60%)" }}
         />
-        <StatCard
-          label="Pending"
-          value={summary.pendingCount}
-          description={isAdmin ? "Waiting in approval queue" : "Awaiting review"}
-          icon={Bell}
-          tone="amber"
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 opacity-[0.07]"
+          style={{
+            backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)",
+            backgroundSize: "14px 14px",
+          }}
         />
-        <StatCard
-          label={activeTeamId && isAdmin ? "Unpaid" : "Status"}
-          value={activeTeamId && isAdmin ? summary.unpaidApprovedCount : roleLabel}
-          description={activeTeamId && isAdmin ? "Approved without paid-through" : "Your access level"}
-          icon={HandCoins}
-          tone="navy"
-        />
-        <StatCard
-          label="Approved entries"
-          value={summary.approvedEntryCountThisMonth}
-          description="This month"
-          icon={ClipboardCheck}
-          tone="mint"
-        />
+        <div aria-hidden="true" className="absolute inset-x-5 top-0 h-1 rounded-b-full bg-gradient-to-r from-accent-500 via-accent-500 to-transparent sm:inset-x-7" />
+
+        <div className="relative px-5 py-6 sm:px-7 sm:py-7">
+          <p className="text-2xs uppercase tracking-[0.18em] text-accent-500">This month overtime</p>
+          <p className="mt-2 font-display text-4xl font-semibold leading-none tracking-tight tabular-nums sm:text-[52px]">
+            {formatCurrency(summary.approvedAmountThisMonth)}
+          </p>
+          <div className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-sm">
+            <span className="inline-flex items-center gap-1.5 text-white/90">
+              <Clock3 className="h-4 w-4 text-accent-500" />
+              <span className="font-semibold tabular-nums">{formatMinutesAsHours(summary.approvedHoursThisMonth)}</span>
+              <span className="text-2xs uppercase tracking-wide text-white/60">approved hrs</span>
+            </span>
+            <span className="inline-flex items-center gap-1.5 text-white/90">
+              <Bell className="h-4 w-4 text-accent-500" />
+              <span className="font-semibold tabular-nums">{summary.pendingCount}</span>
+              <span className="text-2xs uppercase tracking-wide text-white/60">pending</span>
+            </span>
+            {activeTeamId && isAdmin ? (
+              <span className="inline-flex items-center gap-1.5 text-white/90">
+                <HandCoins className="h-4 w-4 text-accent-500" />
+                <span className="font-semibold tabular-nums">{summary.unpaidApprovedCount}</span>
+                <span className="text-2xs uppercase tracking-wide text-white/60">unpaid</span>
+              </span>
+            ) : null}
+            <span className="inline-flex items-center gap-1.5 text-white/90">
+              <ClipboardCheck className="h-4 w-4 text-accent-500" />
+              <span className="font-semibold tabular-nums">{summary.approvedEntryCountThisMonth}</span>
+              <span className="text-2xs uppercase tracking-wide text-white/60">entries</span>
+            </span>
+          </div>
+        </div>
       </div>
 
       {!hasSettings ? (

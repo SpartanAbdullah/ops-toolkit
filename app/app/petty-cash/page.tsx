@@ -100,13 +100,31 @@ export default async function PettyCashPage({
       />
 
       {/* Big balance hero */}
-      <div className="overflow-hidden rounded-2xl border border-primary-200 bg-primary-600 text-white shadow-elevated">
-        <div className="grid-noise relative px-5 py-6 sm:px-7 sm:py-8">
-          <p className="text-2xs uppercase tracking-wide text-white/70">Current cash on hand</p>
-          <p className="mt-2 font-display text-4xl font-semibold tracking-tight tabular-nums sm:text-5xl">
+      <div className="relative overflow-hidden rounded-2xl border border-primary-700 bg-primary-700 text-white shadow-elevated">
+        {/* radial gold glow top-right */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(245,158,11,0.35), transparent 60%)" }}
+        />
+        {/* dot pattern */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 opacity-[0.07]"
+          style={{
+            backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)",
+            backgroundSize: "14px 14px",
+          }}
+        />
+        {/* gold accent stripe */}
+        <div aria-hidden="true" className="absolute inset-x-5 top-0 h-1 rounded-b-full bg-gradient-to-r from-accent-500 via-accent-500 to-transparent sm:inset-x-7" />
+
+        <div className="relative px-5 py-6 sm:px-7 sm:py-8">
+          <p className="text-2xs uppercase tracking-[0.18em] text-accent-500">Current balance</p>
+          <p className="mt-2 font-display text-4xl font-semibold leading-none tracking-tight tabular-nums sm:text-[52px]">
             {formatCurrency(summary.currentCashBalance)}
           </p>
-          <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm">
+          <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-sm">
             <span className="inline-flex items-center gap-1.5 text-white/85">
               <ArrowDownRight className="h-4 w-4 text-accent-500" />
               <span className="font-semibold tabular-nums">{formatCurrency(summary.thisMonthExpenses)}</span>

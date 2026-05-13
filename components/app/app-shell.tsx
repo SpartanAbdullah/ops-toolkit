@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, Boxes, LogOut } from "lucide-react";
+import { Bell, LogOut } from "lucide-react";
 
 import { MobileBottomNav } from "@/components/app/mobile-bottom-nav";
 import { SignOutButton } from "@/components/auth/sign-out-button";
+import { BrandMark } from "@/components/brand/brand-mark";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { matchesAppPath, primaryAppNavItems } from "@/lib/app/navigation";
@@ -29,12 +30,10 @@ export function AppShell({ children, userName, email, roleLabel, activeTeamName,
         {/* Desktop sidebar */}
         <aside className="hidden w-64 shrink-0 flex-col gap-6 border-r border-border bg-white px-4 py-6 lg:flex">
           <Link href="/app/overtime" className="flex items-center gap-2.5 px-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-600 text-white">
-              <Boxes className="h-5 w-5" />
-            </div>
+            <BrandMark size={40} className="rounded-xl shadow-card" />
             <div>
               <p className="font-display text-base font-semibold tracking-tight text-text-primary">Ops Toolkit</p>
-              <p className="text-2xs uppercase tracking-wide text-text-muted">Field operations</p>
+              <p className="text-2xs uppercase tracking-wide text-text-muted">Interior360 · Field ops</p>
             </div>
           </Link>
 
@@ -94,9 +93,7 @@ export function AppShell({ children, userName, email, roleLabel, activeTeamName,
           <header className="sticky top-0 z-20 border-b border-border bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/85 safe-top">
             <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6">
               <div className="flex min-w-0 items-center gap-3 lg:hidden">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-600 text-white">
-                  <Boxes className="h-4 w-4" />
-                </div>
+                <BrandMark size={36} className="rounded-xl" />
                 <div className="min-w-0">
                   <p className="truncate font-display text-[15px] font-semibold leading-tight text-text-primary">
                     {activeTeamName ?? "Set up your team"}

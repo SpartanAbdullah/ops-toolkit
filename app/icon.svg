@@ -1,14 +1,39 @@
-<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="256" height="256" rx="72" fill="#2563EB"/>
-  <rect x="50" y="42" width="156" height="172" rx="34" fill="#EFF6FF"/>
-  <rect x="92" y="28" width="72" height="28" rx="14" fill="#1D4ED8"/>
-  <rect x="82" y="88" width="20" height="20" rx="6" fill="#16A34A"/>
-  <rect x="82" y="128" width="20" height="20" rx="6" fill="#1D4ED8"/>
-  <rect x="82" y="168" width="20" height="20" rx="6" fill="#16A34A"/>
-  <rect x="114" y="91" width="58" height="6" rx="3" fill="#0F172A"/>
-  <rect x="114" y="101" width="44" height="6" rx="3" fill="#64748B"/>
-  <rect x="114" y="131" width="64" height="6" rx="3" fill="#0F172A"/>
-  <rect x="114" y="141" width="52" height="6" rx="3" fill="#64748B"/>
-  <rect x="114" y="171" width="62" height="6" rx="3" fill="#0F172A"/>
-  <rect x="114" y="181" width="40" height="6" rx="3" fill="#64748B"/>
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1F3568"/>
+      <stop offset="100%" stop-color="#08122A"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FCD34D"/>
+      <stop offset="55%" stop-color="#F59E0B"/>
+      <stop offset="100%" stop-color="#B45309"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="80%" cy="18%" r="55%">
+      <stop offset="0%" stop-color="#F59E0B" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#F59E0B" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <rect width="512" height="512" rx="112" fill="url(#glow)"/>
+
+  <!-- subtle guide ring -->
+  <circle cx="256" cy="256" r="156" stroke="white" stroke-width="2" fill="none" opacity="0.10"/>
+
+  <!-- 3/4 rotation arc — the "360" mark -->
+  <path
+    d="M 256 100 A 156 156 0 1 1 100 256"
+    fill="none"
+    stroke="url(#gold)"
+    stroke-width="48"
+    stroke-linecap="round"
+  />
+
+  <!-- origin marker at 12 o'clock -->
+  <circle cx="256" cy="100" r="22" fill="white"/>
+
+  <!-- focal mark in the center -->
+  <circle cx="256" cy="256" r="42" fill="url(#gold)"/>
+  <circle cx="256" cy="256" r="14" fill="#08122A"/>
 </svg>

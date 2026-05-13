@@ -1,14 +1,35 @@
-<svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="180" height="180" rx="44" fill="#2563EB"/>
-  <rect x="36" y="30" width="108" height="120" rx="24" fill="#EFF6FF"/>
-  <rect x="72" y="20" width="36" height="18" rx="9" fill="#1D4ED8"/>
-  <rect x="58" y="62" width="14" height="14" rx="4" fill="#16A34A"/>
-  <rect x="58" y="90" width="14" height="14" rx="4" fill="#1D4ED8"/>
-  <rect x="58" y="118" width="14" height="14" rx="4" fill="#16A34A"/>
-  <rect x="80" y="64" width="42" height="4.5" rx="2.25" fill="#0F172A"/>
-  <rect x="80" y="72" width="32" height="4.5" rx="2.25" fill="#64748B"/>
-  <rect x="80" y="92" width="48" height="4.5" rx="2.25" fill="#0F172A"/>
-  <rect x="80" y="100" width="38" height="4.5" rx="2.25" fill="#64748B"/>
-  <rect x="80" y="120" width="46" height="4.5" rx="2.25" fill="#0F172A"/>
-  <rect x="80" y="128" width="28" height="4.5" rx="2.25" fill="#64748B"/>
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1F3568"/>
+      <stop offset="100%" stop-color="#08122A"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FCD34D"/>
+      <stop offset="55%" stop-color="#F59E0B"/>
+      <stop offset="100%" stop-color="#B45309"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="80%" cy="18%" r="55%">
+      <stop offset="0%" stop-color="#F59E0B" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#F59E0B" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- iOS will mask corners; fill the full square -->
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <rect width="512" height="512" fill="url(#glow)"/>
+
+  <circle cx="256" cy="256" r="156" stroke="white" stroke-width="2" fill="none" opacity="0.10"/>
+
+  <path
+    d="M 256 100 A 156 156 0 1 1 100 256"
+    fill="none"
+    stroke="url(#gold)"
+    stroke-width="48"
+    stroke-linecap="round"
+  />
+
+  <circle cx="256" cy="100" r="22" fill="white"/>
+  <circle cx="256" cy="256" r="42" fill="url(#gold)"/>
+  <circle cx="256" cy="256" r="14" fill="#08122A"/>
 </svg>

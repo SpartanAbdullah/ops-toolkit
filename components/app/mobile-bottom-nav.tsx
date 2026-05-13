@@ -92,10 +92,13 @@ function NavTab({
     <Link
       href={href}
       className={cn(
-        "tap-highlight flex flex-col items-center justify-center gap-0.5 px-2 pb-3 pt-3 text-2xs font-semibold transition",
+        "tap-highlight relative flex flex-col items-center justify-center gap-0.5 px-2 pb-3 pt-3 text-2xs font-semibold transition",
         active ? "text-primary-700" : "text-text-muted hover:text-text-primary",
       )}
     >
+      {active ? (
+        <span className="absolute inset-x-4 top-0 h-0.5 rounded-full bg-accent-500" aria-hidden="true" />
+      ) : null}
       <Icon className={cn("h-5 w-5", active && "stroke-[2.5]")} />
       <span>{label}</span>
     </Link>
