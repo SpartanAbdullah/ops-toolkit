@@ -7,28 +7,30 @@ import { prisma } from "@/lib/prisma";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { mapMembershipRoleToAppRole } from "@/lib/app/team";
 
+const USER_INCLUDE = {
+  profile: true,
+  activeTeam: true,
+  teamMemberships: {
+    include: {
+      team: true,
+    },
+  },
+} as const;
+
+function extractFullName(authUser: SupabaseUser) {
+  if (typeof authUser.user_metadata.full_name === "string") return authUser.user_metadata.full_name;
+  if (typeof authUser.user_metadata.name === "string") return authUser.user_metadata.name;
+  return null;
+}
+
 async function ensureUserRecord(authUser: SupabaseUser) {
   const existingUser = await prisma.user.findUnique({
     where: { id: authUser.id },
-    include: {
-      profile: true,
-      activeTeam: true,
-      teamMemberships: {
-        include: {
-          team: true,
-        },
-      },
-    },
+    include: USER_INCLUDE,
   });
 
+  // First-time login — create everything in one round trip
   if (!existingUser) {
-    const fullName =
-      typeof authUser.user_metadata.full_name === "string"
-        ? authUser.user_metadata.full_name
-        : typeof authUser.user_metadata.name === "string"
-          ? authUser.user_metadata.name
-          : null;
-
     return prisma.user.create({
       data: {
         id: authUser.id,
@@ -36,23 +38,16 @@ async function ensureUserRecord(authUser: SupabaseUser) {
         role: AppRole.individual,
         profile: {
           create: {
-            fullName,
+            fullName: extractFullName(authUser),
             phone: authUser.phone ?? null,
           },
         },
       },
-      include: {
-        profile: true,
-        activeTeam: true,
-        teamMemberships: {
-          include: {
-            team: true,
-          },
-        },
-      },
+      include: USER_INCLUDE,
     });
   }
 
+  // Figure out what (if anything) needs reconciling
   const updates: {
     email?: string;
     activeTeamId?: string | null;
@@ -70,65 +65,69 @@ async function ensureUserRecord(authUser: SupabaseUser) {
   if (existingUser.activeTeamId && !hasActiveMembership) {
     updates.activeTeamId = null;
     updates.role = AppRole.individual;
+  } else {
+    const activeMembership = existingUser.activeTeamId
+      ? existingUser.teamMemberships.find((m) => m.teamId === existingUser.activeTeamId) ?? null
+      : null;
+    const nextRole = mapMembershipRoleToAppRole(activeMembership?.role);
+    if (existingUser.role !== nextRole) {
+      updates.role = nextRole;
+    }
   }
 
-  if (Object.keys(updates).length > 0) {
-    await prisma.user.update({
-      where: { id: existingUser.id },
-      data: updates,
-    });
+  const needsProfileCreate = !existingUser.profile;
+  const needsUserUpdate = Object.keys(updates).length > 0;
+
+  // Fast path — everything is already in sync. ONE query total for the whole context.
+  if (!needsUserUpdate && !needsProfileCreate) {
+    return existingUser;
   }
 
-  if (!existingUser.profile) {
-    await prisma.profile.create({
-      data: {
-        userId: existingUser.id,
-        fullName:
-          typeof authUser.user_metadata.full_name === "string"
-            ? authUser.user_metadata.full_name
-            : typeof authUser.user_metadata.name === "string"
-              ? authUser.user_metadata.name
-              : null,
-        phone: authUser.phone ?? null,
-      },
-    });
-  }
-
-  const freshUser = await prisma.user.findUniqueOrThrow({
-    where: { id: authUser.id },
-    include: {
-      profile: true,
-      activeTeam: true,
-      teamMemberships: {
-        include: {
-          team: true,
-        },
-      },
-    },
-  });
-
-  const activeMembership = freshUser.activeTeamId
-    ? freshUser.teamMemberships.find((membership) => membership.teamId === freshUser.activeTeamId) ?? null
-    : null;
-  const nextRole = mapMembershipRoleToAppRole(activeMembership?.role);
-
-  if (freshUser.role !== nextRole) {
-    return prisma.user.update({
-      where: { id: freshUser.id },
-      data: { role: nextRole },
-      include: {
-        profile: true,
-        activeTeam: true,
-        teamMemberships: {
-          include: {
-            team: true,
+  // Slow path — only when reconciliation is genuinely needed. Run both fixups in parallel.
+  const [updatedUser] = await Promise.all([
+    needsUserUpdate
+      ? prisma.user.update({
+          where: { id: existingUser.id },
+          data: updates,
+          include: USER_INCLUDE,
+        })
+      : Promise.resolve(existingUser),
+    needsProfileCreate
+      ? prisma.profile.create({
+          data: {
+            userId: existingUser.id,
+            fullName: extractFullName(authUser),
+            phone: authUser.phone ?? null,
           },
-        },
+        })
+      : Promise.resolve(null),
+  ]);
+
+  // If we created a profile but didn't update the user, the cached user object lacks the profile.
+  // Stitch it together instead of re-fetching.
+  if (needsProfileCreate && !needsUserUpdate) {
+    return {
+      ...updatedUser,
+      profile: {
+        userId: existingUser.id,
+        fullName: extractFullName(authUser),
+        phone: authUser.phone ?? null,
+        timezone: "Asia/Dubai",
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
+    };
+  }
+
+  // If we updated the user but didn't have a profile and created one, re-fetch once with everything
+  if (needsProfileCreate) {
+    return prisma.user.findUniqueOrThrow({
+      where: { id: authUser.id },
+      include: USER_INCLUDE,
     });
   }
 
-  return freshUser;
+  return updatedUser;
 }
 
 export const getAppContext = cache(async () => {
@@ -200,5 +199,13 @@ export async function getRecentNotifications(limit = 15) {
     where: { userId: context.user.id },
     orderBy: { createdAt: "desc" },
     take: limit,
+    select: {
+      id: true,
+      type: true,
+      title: true,
+      body: true,
+      readAt: true,
+      createdAt: true,
+    },
   });
 }

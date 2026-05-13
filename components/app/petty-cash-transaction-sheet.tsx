@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { createPettyCashTransactionAction } from "@/app/app/petty-cash/actions";
+import { usePettyCashPending } from "@/components/app/petty-cash-pending-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
@@ -108,6 +109,7 @@ export function PettyCashTransactionSheet({
   const router = useRouter();
   const searchParams = useSearchParams();
   const categoryListId = useId();
+  const pending = usePettyCashPending();
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -190,7 +192,31 @@ export function PettyCashTransactionSheet({
 
   const onSubmit = handleSubmit((values) => {
     setMessage(null);
+    // Capture the optimistic snapshot before the transition starts
+    const numeric = Number(values.amount);
+    const optimisticAmount = Number.isFinite(numeric)
+      ? values.type === "adjustment"
+        ? numeric
+        : Math.abs(numeric)
+      : 0;
+    const optimisticRow = pending
+      ? {
+          tempId: `temp-${Date.now()}`,
+          type: values.type,
+          typeLabel: pettyCashTransactionTypeMeta[values.type].label,
+          category: values.category.trim() || pettyCashTransactionTypeMeta[values.type].defaultCategory,
+          amount: optimisticAmount,
+          occurredAt: values.occurredAt,
+        }
+      : null;
+
+    // Close the sheet immediately for snappy feedback. Optimistic row + transition show progress.
+    setOpen(false);
+
     startTransition(async () => {
+      if (optimisticRow && pending) {
+        pending.addPending(optimisticRow);
+      }
       const result = await createPettyCashTransactionAction(values);
       if (result.status === "error") {
         if (result.fieldErrors) {
@@ -198,11 +224,11 @@ export function PettyCashTransactionSheet({
             if (error) setError(field as keyof PettyCashTransactionFormValues, { message: error });
           });
         }
+        // Re-open the sheet to surface the error
         setMessage({ tone: "error", text: result.message });
+        setOpen(true);
         return;
       }
-      setMessage({ tone: "success", text: result.message });
-      setOpen(false);
       router.refresh();
     });
   });

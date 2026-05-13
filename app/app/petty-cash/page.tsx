@@ -4,6 +4,8 @@ import { AppPageHeader } from "@/components/app/app-page-header";
 import { PettyCashExportButton } from "@/components/app/petty-cash-export-button";
 import { PettyCashFilterBar } from "@/components/app/petty-cash-filter-bar";
 import { PettyCashLedger } from "@/components/app/petty-cash-ledger";
+import { PettyCashPendingProvider } from "@/components/app/petty-cash-pending-provider";
+import { PettyCashPendingRows } from "@/components/app/petty-cash-pending-rows";
 import { PettyCashTransactionSheet } from "@/components/app/petty-cash-transaction-sheet";
 import { Callout } from "@/components/ui/callout";
 import { StatCard } from "@/components/ui/stat-card";
@@ -43,8 +45,26 @@ export default async function PettyCashPage({
 
   const account = await prisma.pettyCashAccount.findUnique({
     where: { userId: context.user.id },
-    include: {
-      transactions: { orderBy: [{ occurredAt: "asc" }, { createdAt: "asc" }] },
+    select: {
+      id: true,
+      transactions: {
+        select: {
+          id: true,
+          occurredAt: true,
+          createdAt: true,
+          type: true,
+          amount: true,
+          category: true,
+          vendorPayee: true,
+          paymentMethod: true,
+          notes: true,
+          referenceNumber: true,
+          receiptReference: true,
+          status: true,
+          reimbursementStatus: true,
+        },
+        orderBy: [{ occurredAt: "asc" }, { createdAt: "asc" }],
+      },
     },
   });
 
@@ -80,6 +100,7 @@ export default async function PettyCashPage({
   );
 
   return (
+    <PettyCashPendingProvider>
     <div className="space-y-5 animate-fade-up">
       <AppPageHeader
         eyebrow="Cash"
@@ -291,6 +312,8 @@ export default async function PettyCashPage({
         </p>
       </div>
 
+      <PettyCashPendingRows />
+
       <PettyCashLedger
         rows={filteredRows}
         hasAnyRows={hasAnyRows}
@@ -298,5 +321,6 @@ export default async function PettyCashPage({
         resetHref="/app/petty-cash"
       />
     </div>
+    </PettyCashPendingProvider>
   );
 }
