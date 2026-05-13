@@ -51,11 +51,14 @@ function getTodayInputValue() {
   return `${year}-${month}-${day}`;
 }
 
-function buildDefaultValues(type: PettyCashTransactionTypeValue): PettyCashTransactionFormValues {
+function buildDefaultValues(
+  type: PettyCashTransactionTypeValue,
+  prefilledAmount?: string,
+): PettyCashTransactionFormValues {
   return {
     occurredAt: getTodayInputValue(),
     type,
-    amount: "",
+    amount: prefilledAmount ?? "",
     category: getSuggestedCategory(type),
     vendorPayee: "",
     paymentMethod: getDefaultPaymentMethod(type) ?? "",
@@ -86,6 +89,8 @@ export function PettyCashTransactionSheet({
   buttonIcon = false,
   categories,
   hasOpeningBalance,
+  initialType,
+  prefilledAmount,
 }: {
   buttonLabel: string;
   buttonVariant?: ButtonProps["variant"];
@@ -94,6 +99,8 @@ export function PettyCashTransactionSheet({
   buttonIcon?: boolean;
   categories: string[];
   hasOpeningBalance: boolean;
+  initialType?: PettyCashTransactionTypeValue;
+  prefilledAmount?: string;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -109,7 +116,10 @@ export function PettyCashTransactionSheet({
       ),
     [hasOpeningBalance],
   );
-  const defaultType = availableTypes[0]?.value ?? "expense_cash";
+  const defaultType = useMemo(() => {
+    if (initialType && availableTypes.some((t) => t.value === initialType)) return initialType;
+    return availableTypes[0]?.value ?? "expense_cash";
+  }, [availableTypes, initialType]);
   const suggestedCategoryRef = useRef<string>(getSuggestedCategory(defaultType));
   const categoryOptions = useMemo(
     () =>
@@ -128,7 +138,7 @@ export function PettyCashTransactionSheet({
     formState: { errors },
   } = useForm<PettyCashTransactionFormValues>({
     resolver: zodResolver(pettyCashTransactionSchema),
-    defaultValues: buildDefaultValues(defaultType),
+    defaultValues: buildDefaultValues(defaultType, prefilledAmount),
   });
 
   const selectedType = watch("type");
@@ -151,11 +161,11 @@ export function PettyCashTransactionSheet({
 
   useEffect(() => {
     if (!open) return;
-    const defaults = buildDefaultValues(defaultType);
+    const defaults = buildDefaultValues(defaultType, prefilledAmount);
     suggestedCategoryRef.current = defaults.category;
     reset(defaults);
     setMessage(null);
-  }, [defaultType, open, reset]);
+  }, [defaultType, prefilledAmount, open, reset]);
 
   useEffect(() => {
     const suggestedCategory = getSuggestedCategory(selectedType);
@@ -216,18 +226,29 @@ export function PettyCashTransactionSheet({
                 </div>
               </div>
             </SheetHeader>
-            <div className="mt-4 flex items-center justify-between rounded-xl bg-surface-muted px-4 py-3">
-              <div>
-                <p className="text-2xs uppercase tracking-wide text-text-muted">Cash impact preview</p>
-                <p className={cn("mt-0.5 font-display text-lg font-semibold tabular-nums",
-                  previewImpact > 0 && "text-mint-600",
-                  previewImpact < 0 && "text-danger-600",
-                  previewImpact === 0 && "text-text-secondary",
-                )}>
-                  {formatCashImpact(previewImpact)}
-                </p>
+            <div className="mt-4 space-y-2">
+              <div className="flex items-center justify-between rounded-xl bg-surface-muted px-4 py-3">
+                <div>
+                  <p className="text-2xs uppercase tracking-wide text-text-muted">Cash impact preview</p>
+                  <p className={cn("mt-0.5 font-display text-lg font-semibold tabular-nums",
+                    previewImpact > 0 && "text-mint-600",
+                    previewImpact < 0 && "text-danger-600",
+                    previewImpact === 0 && "text-text-secondary",
+                  )}>
+                    {formatCashImpact(previewImpact)}
+                  </p>
+                </div>
+                <Badge variant="subtle">{selectedTypeMeta.label}</Badge>
               </div>
-              <Badge variant="subtle">{selectedTypeMeta.label}</Badge>
+              {selectedType === "reimbursement_submitted" ? (
+                <p className="rounded-lg bg-accent-50 px-3 py-2 text-2xs leading-4 text-accent-foreground">
+                  This records the claim filed with accounts — no money has moved yet. Log it as <span className="font-semibold">Reimbursement Received</span> when the float is replenished.
+                </p>
+              ) : selectedType === "expense_card" ? (
+                <p className="rounded-lg bg-primary-50 px-3 py-2 text-2xs leading-4 text-primary-700">
+                  Card spend doesn't reduce cash on hand, but it still counts toward what you can claim from accounts.
+                </p>
+              ) : null}
             </div>
           </div>
 

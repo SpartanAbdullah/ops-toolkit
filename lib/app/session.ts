@@ -192,3 +192,13 @@ export async function getUnreadNotificationCount() {
     },
   });
 }
+
+export async function getRecentNotifications(limit = 15) {
+  const context = await getAppContext();
+
+  return prisma.notification.findMany({
+    where: { userId: context.user.id },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+  });
+}

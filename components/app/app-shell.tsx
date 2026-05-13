@@ -2,14 +2,22 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, LogOut } from "lucide-react";
 
 import { MobileBottomNav } from "@/components/app/mobile-bottom-nav";
+import { NotificationsSheet } from "@/components/app/notifications-sheet";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { BrandMark } from "@/components/brand/brand-mark";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { matchesAppPath, primaryAppNavItems } from "@/lib/app/navigation";
+
+type NotificationItem = {
+  id: string;
+  type: "info" | "success" | "warning";
+  title: string;
+  body: string;
+  readAt: Date | null;
+  createdAt: Date;
+};
 
 type AppShellProps = {
   children: React.ReactNode;
@@ -18,9 +26,18 @@ type AppShellProps = {
   roleLabel: string;
   activeTeamName: string | null;
   unreadNotifications: number;
+  notifications: NotificationItem[];
 };
 
-export function AppShell({ children, userName, email, roleLabel, activeTeamName, unreadNotifications }: AppShellProps) {
+export function AppShell({
+  children,
+  userName,
+  email,
+  roleLabel,
+  activeTeamName,
+  unreadNotifications,
+  notifications,
+}: AppShellProps) {
   const pathname = usePathname();
   const userInitial = (userName || email).trim().charAt(0).toUpperCase() || "?";
 
@@ -105,27 +122,14 @@ export function AppShell({ children, userName, email, roleLabel, activeTeamName,
               <div className="hidden lg:block" />
 
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  aria-label="Notifications"
-                  className="tap-highlight relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-white text-text-secondary transition hover:border-primary-200 hover:text-primary-700"
-                >
-                  <Bell className="h-[18px] w-[18px]" />
-                  {unreadNotifications > 0 ? (
-                    <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-accent-500 px-1.5 text-2xs font-semibold text-primary-700">
-                      {unreadNotifications > 9 ? "9+" : unreadNotifications}
-                    </span>
-                  ) : null}
-                </button>
-                <button
-                  type="button"
+                <NotificationsSheet unreadCount={unreadNotifications} notifications={notifications} />
+                <Link
+                  href="/app/profile"
                   aria-label="Profile"
                   className="tap-highlight inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary-50 font-display text-sm font-semibold text-primary-700 lg:hidden"
                 >
-                  <Link href="/app/profile" className="flex h-full w-full items-center justify-center">
-                    {userInitial}
-                  </Link>
-                </button>
+                  {userInitial}
+                </Link>
               </div>
             </div>
           </header>
@@ -142,5 +146,3 @@ export function AppShell({ children, userName, email, roleLabel, activeTeamName,
   );
 }
 
-// Re-export for convenience in feature pages
-export { Badge as ShellBadge, LogOut as ShellLogOut };

@@ -283,6 +283,26 @@ export async function joinTeamAction(values: JoinTeamValues): Promise<ActionResu
   };
 }
 
+export async function markAllNotificationsReadAction(): Promise<ActionResult> {
+  const context = await getAppContext();
+
+  await prisma.notification.updateMany({
+    where: { userId: context.user.id, readAt: null },
+    data: { readAt: new Date() },
+  });
+
+  revalidatePath("/app");
+  revalidatePath("/app/overtime");
+  revalidatePath("/app/petty-cash");
+  revalidatePath("/app/team");
+  revalidatePath("/app/profile");
+
+  return {
+    status: "success",
+    message: "Notifications marked as read.",
+  };
+}
+
 export async function regenerateJoinCodeAction(): Promise<ActionResult<never, { joinCode: string }>> {
   const context = await getAppContext();
   if (!context.activeTeam || context.activeMembership?.role !== TeamMemberRole.admin) {

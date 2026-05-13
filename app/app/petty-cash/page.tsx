@@ -165,9 +165,59 @@ export default async function PettyCashPage({
         </Callout>
       ) : null}
 
+      {/* Smart prompt: claim what hasn't been submitted yet */}
+      {hasOpeningBalance && summary.unsubmittedExpensesTotal > 0 ? (
+        <Callout
+          title={`${formatCurrency(summary.unsubmittedExpensesTotal)} ready to claim`}
+          description="You have unclaimed expenses sitting on the books. File a reimbursement claim with accounts to recover this back into the float."
+          icon={ReceiptText}
+          tone="amber"
+        >
+          <div className="flex flex-wrap gap-2">
+            <PettyCashTransactionSheet
+              buttonLabel={`Submit claim for ${formatCurrency(summary.unsubmittedExpensesTotal)}`}
+              buttonVariant="accent"
+              buttonSize="sm"
+              categories={categories}
+              hasOpeningBalance={hasOpeningBalance}
+              initialType="reimbursement_submitted"
+              prefilledAmount={summary.unsubmittedExpensesTotal.toFixed(2)}
+            />
+            <PettyCashTransactionSheet
+              buttonLabel="Different amount"
+              buttonVariant="secondary"
+              buttonSize="sm"
+              categories={categories}
+              hasOpeningBalance={hasOpeningBalance}
+              initialType="reimbursement_submitted"
+            />
+          </div>
+        </Callout>
+      ) : null}
+
+      {/* Pending claim banner */}
+      {hasOpeningBalance && summary.pendingReimbursementTotal > 0 ? (
+        <Callout
+          title={`${formatCurrency(summary.pendingReimbursementTotal)} awaiting reimbursement`}
+          description="A claim has been filed with accounts but the float hasn't been replenished yet. Record it as Reimbursement Received when the money lands."
+          icon={Hourglass}
+          tone="navy"
+        >
+          <PettyCashTransactionSheet
+            buttonLabel="Record reimbursement received"
+            buttonVariant="default"
+            buttonSize="sm"
+            categories={categories}
+            hasOpeningBalance={hasOpeningBalance}
+            initialType="reimbursement_received"
+            prefilledAmount={summary.pendingReimbursementTotal.toFixed(2)}
+          />
+        </Callout>
+      ) : null}
+
       {/* Secondary stats — only when there's data */}
       {hasAnyRows ? (
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatCard
             label="This month expenses"
             value={formatCurrency(summary.thisMonthExpenses)}
@@ -176,9 +226,16 @@ export default async function PettyCashPage({
             tone="rose"
           />
           <StatCard
-            label="Pending reimbursement"
+            label="Unclaimed"
+            value={formatCurrency(summary.unsubmittedExpensesTotal)}
+            description="Spent but not yet submitted"
+            icon={ReceiptText}
+            tone="amber"
+          />
+          <StatCard
+            label="Awaiting reimbursement"
             value={formatCurrency(summary.pendingReimbursementTotal)}
-            description="Submitted, not back yet"
+            description="Submitted, not received"
             icon={Hourglass}
             tone="amber"
           />

@@ -89,6 +89,7 @@ export type PettyCashSummary = {
   thisMonthExpenses: number;
   pendingReimbursementTotal: number;
   reimbursementsReceivedTotal: number;
+  unsubmittedExpensesTotal: number;
   transactionCount: number;
 };
 
@@ -291,12 +292,20 @@ export function calculatePettyCashSummary(rows: PettyCashLedgerRow[], referenceD
 
   const submittedTotal = rows.reduce((total, row) => row.type === "reimbursement_submitted" ? total + row.amount : total, 0);
   const receivedTotal = rows.reduce((total, row) => row.type === "reimbursement_received" ? total + row.amount : total, 0);
+  const allExpensesTotal = rows.reduce(
+    (total, row) => (row.type === "expense_cash" || row.type === "expense_card") ? total + row.amount : total,
+    0,
+  );
+  // Unsubmitted = total expenses minus what's already been claimed (regardless of received/not).
+  // This is what the operator should be filing as a reimbursement next.
+  const unsubmittedExpensesTotal = Math.max(allExpensesTotal - submittedTotal, 0);
 
   return {
     currentCashBalance: rows.at(-1)?.runningBalance ?? 0,
     thisMonthExpenses,
     pendingReimbursementTotal: Math.max(submittedTotal - receivedTotal, 0),
     reimbursementsReceivedTotal: receivedTotal,
+    unsubmittedExpensesTotal,
     transactionCount: rows.length,
   };
 }
