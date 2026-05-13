@@ -1,9 +1,7 @@
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { SectionHeader } from "@/components/ui/section-header";
 import { Select } from "@/components/ui/select";
 import { pettyCashTransactionTypes } from "@/lib/petty-cash";
 
@@ -21,56 +19,53 @@ export function PettyCashFilterBar({
   categories: string[];
 }) {
   return (
-    <Card>
-      <CardContent className="space-y-5 p-5 sm:p-6">
-        <SectionHeader
-          eyebrow="Filters"
-          title="Refine the ledger"
-          description="Narrow the list by date, category, type, or reimbursement state."
-        />
-        <form action="/app/petty-cash" className="grid gap-4 md:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_1fr_1fr_auto] xl:items-end">
-          <div className="space-y-2">
-            <label htmlFor="petty-cash-from" className="text-sm font-semibold text-text-primary">From</label>
-            <Input id="petty-cash-from" name="from" type="date" defaultValue={filters.from ?? ""} />
-          </div>
-          <div className="space-y-2">
-            <label htmlFor="petty-cash-to" className="text-sm font-semibold text-text-primary">To</label>
-            <Input id="petty-cash-to" name="to" type="date" defaultValue={filters.to ?? ""} />
-          </div>
-          <div className="space-y-2">
-            <label htmlFor="petty-cash-type" className="text-sm font-semibold text-text-primary">Type</label>
-            <Select id="petty-cash-type" name="type" defaultValue={filters.type ?? "all"}>
-              <option value="all">All transaction types</option>
-              {pettyCashTransactionTypes.map((type) => (
-                <option key={type.value} value={type.value}>{type.label}</option>
-              ))}
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <label htmlFor="petty-cash-category" className="text-sm font-semibold text-text-primary">Category</label>
-            <Select id="petty-cash-category" name="category" defaultValue={filters.category ?? "all"}>
-              <option value="all">All categories</option>
-              {categories.map((category) => (
-                <option key={category} value={category}>{category}</option>
-              ))}
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <label htmlFor="petty-cash-reimbursement" className="text-sm font-semibold text-text-primary">Reimbursement</label>
-            <Select id="petty-cash-reimbursement" name="reimbursement" defaultValue={filters.reimbursement ?? "all"}>
-              <option value="all">All reimbursement states</option>
-              <option value="pending">Pending reimbursement</option>
-              <option value="received">Reimbursement received</option>
-            </Select>
-          </div>
-          <div className="flex flex-wrap gap-3 xl:justify-end">
-            <Button type="submit">Apply</Button>
-            <Button asChild type="button" variant="secondary">
-              <Link href="/app/petty-cash">Reset</Link>
-            </Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
+    <details className="surface-card group">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 p-4 text-sm font-semibold text-text-primary marker:hidden">
+        <span>Filters</span>
+        <span className="text-2xs uppercase tracking-wide text-text-muted">Tap to refine</span>
+      </summary>
+      <form action="/app/petty-cash" className="grid gap-3 border-t border-border p-4 md:grid-cols-2">
+        <div className="space-y-1.5">
+          <label htmlFor="petty-cash-from" className="text-xs font-semibold text-text-primary">From</label>
+          <Input id="petty-cash-from" name="from" type="date" defaultValue={filters.from ?? ""} />
+        </div>
+        <div className="space-y-1.5">
+          <label htmlFor="petty-cash-to" className="text-xs font-semibold text-text-primary">To</label>
+          <Input id="petty-cash-to" name="to" type="date" defaultValue={filters.to ?? ""} />
+        </div>
+        <div className="space-y-1.5">
+          <label htmlFor="petty-cash-type" className="text-xs font-semibold text-text-primary">Type</label>
+          <Select id="petty-cash-type" name="type" defaultValue={filters.type ?? "all"}>
+            <option value="all">All types</option>
+            {pettyCashTransactionTypes.map((type) => (
+              <option key={type.value} value={type.value}>{type.label}</option>
+            ))}
+          </Select>
+        </div>
+        <div className="space-y-1.5">
+          <label htmlFor="petty-cash-category" className="text-xs font-semibold text-text-primary">Category</label>
+          <Select id="petty-cash-category" name="category" defaultValue={filters.category ?? "all"}>
+            <option value="all">All categories</option>
+            {categories.map((category) => (
+              <option key={category} value={category}>{category}</option>
+            ))}
+          </Select>
+        </div>
+        <div className="space-y-1.5 md:col-span-2">
+          <label htmlFor="petty-cash-reimbursement" className="text-xs font-semibold text-text-primary">Reimbursement</label>
+          <Select id="petty-cash-reimbursement" name="reimbursement" defaultValue={filters.reimbursement ?? "all"}>
+            <option value="all">All states</option>
+            <option value="pending">Pending</option>
+            <option value="received">Received</option>
+          </Select>
+        </div>
+        <div className="flex gap-2 md:col-span-2">
+          <Button asChild type="button" variant="secondary" className="flex-1">
+            <Link href="/app/petty-cash">Reset</Link>
+          </Button>
+          <Button type="submit" className="flex-1">Apply</Button>
+        </div>
+      </form>
+    </details>
   );
 }

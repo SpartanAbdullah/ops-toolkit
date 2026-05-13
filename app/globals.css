@@ -4,36 +4,62 @@
 
 @layer base {
   :root {
-    --app-background: 210 40% 98%;
-    --background: 210 40% 98%;
+    /* Surfaces */
+    --app-background: 220 30% 98%;
+    --background: 220 30% 98%;
     --foreground: 222 47% 11%;
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
+    --surface-raised: 0 0% 100%;
+    --surface-muted: 220 24% 96%;
+
+    /* Text */
     --text-primary: 222 47% 11%;
-    --text-secondary: 215 25% 27%;
-    --text-muted: 215 20% 46%;
-    --primary-50: 214 100% 97%;
-    --primary-600: 217 91% 56%;
-    --primary-700: 221 83% 53%;
+    --text-secondary: 220 18% 32%;
+    --text-muted: 220 12% 50%;
+
+    /* Primary - deep navy */
+    --primary-50: 220 30% 96%;
+    --primary-100: 220 28% 90%;
+    --primary-200: 220 26% 82%;
+    --primary-500: 220 50% 28%;
+    --primary-600: 220 58% 18%;
+    --primary-700: 220 64% 13%;
     --primary-foreground: 0 0% 100%;
+
+    /* Accent - warm amber (overtime) */
+    --accent-50: 38 100% 96%;
+    --accent-100: 38 96% 88%;
+    --accent-500: 36 92% 50%;
+    --accent-600: 32 95% 44%;
+    --accent: 38 100% 96%;
+    --accent-foreground: 32 95% 24%;
+
+    /* Mint - positive cash */
+    --mint-50: 160 64% 95%;
+    --mint-100: 160 56% 88%;
+    --mint-500: 160 68% 38%;
+    --mint-600: 162 75% 30%;
+
+    /* Status */
+    --success-50: 160 64% 95%;
+    --success-600: 160 68% 38%;
+    --success-foreground: 0 0% 100%;
+    --warning-50: 38 100% 96%;
+    --warning-600: 32 95% 44%;
+    --warning-foreground: 32 91% 15%;
+    --danger-50: 350 100% 96%;
+    --danger-600: 350 80% 50%;
+    --danger-foreground: 0 0% 100%;
+
+    /* Neutral chrome */
     --secondary: 0 0% 100%;
     --secondary-foreground: 222 47% 11%;
-    --accent: 214 100% 97%;
-    --accent-foreground: 221 83% 53%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 20% 46%;
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 217 91% 56%;
-    --success-50: 138 76% 97%;
-    --success-600: 142 71% 45%;
-    --success-foreground: 0 0% 100%;
-    --warning-50: 48 100% 96%;
-    --warning-600: 38 92% 50%;
-    --warning-foreground: 32 91% 15%;
-    --danger-50: 0 86% 97%;
-    --danger-600: 0 72% 51%;
-    --danger-foreground: 0 0% 100%;
+    --muted: 220 24% 96%;
+    --muted-foreground: 220 14% 50%;
+    --border: 220 16% 90%;
+    --input: 220 16% 90%;
+    --ring: 36 92% 50%;
   }
 
   * {
@@ -42,10 +68,12 @@
 
   html {
     scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
   }
 
   body {
     @apply min-h-screen bg-background font-body text-foreground antialiased;
+    font-feature-settings: "cv11", "ss01", "ss03";
   }
 
   a {
@@ -59,25 +87,30 @@
     font: inherit;
   }
 
+  /* Larger tap targets on iOS */
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
   h1,
   h2,
   h3,
   h4 {
-    @apply text-text-primary;
+    @apply font-display text-text-primary;
+    letter-spacing: -0.02em;
   }
 
   ::selection {
-    background: rgba(37, 99, 235, 0.18);
+    background: hsl(var(--accent-100));
+    color: hsl(var(--primary-700));
   }
 }
 
 @layer utilities {
   .app-page {
-    @apply mx-auto flex w-full max-w-[1180px] flex-col gap-6 px-4 py-4 sm:px-6 sm:py-6;
-  }
-
-  .page-surface {
-    background-image: radial-gradient(circle at top, rgba(37, 99, 235, 0.07), transparent 32%);
+    @apply mx-auto flex w-full max-w-[1180px] flex-col gap-5 px-4 pb-6 pt-4 sm:gap-6 sm:px-6 sm:pb-8 sm:pt-6;
   }
 
   .tap-highlight {
@@ -85,22 +118,19 @@
   }
 
   .safe-bottom {
-    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
   }
 
   .safe-top {
     padding-top: calc(0.5rem + env(safe-area-inset-top));
   }
 
-  .data-grid {
-    background-image:
-      linear-gradient(rgba(148, 163, 184, 0.12) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(148, 163, 184, 0.12) 1px, transparent 1px);
-    background-size: 26px 26px;
+  .pb-tabbar {
+    padding-bottom: calc(6.25rem + env(safe-area-inset-bottom));
   }
 
   .section-label {
-    @apply text-xs font-semibold uppercase tracking-[0.18em] text-text-muted;
+    @apply text-[11px] font-semibold uppercase tracking-[0.16em] text-text-muted;
   }
 
   .text-balance {
@@ -113,6 +143,24 @@
 
   .scrollbar-none::-webkit-scrollbar {
     display: none;
+  }
+
+  .surface-card {
+    @apply rounded-2xl border border-border bg-card shadow-card;
+  }
+
+  .surface-raised {
+    @apply rounded-2xl border border-border bg-white shadow-soft;
+  }
+
+  .surface-muted {
+    @apply rounded-2xl bg-surface-muted border border-border/60;
+  }
+
+  .grid-noise {
+    background-image:
+      radial-gradient(circle at 15% 15%, hsl(var(--accent-50) / 0.7), transparent 50%),
+      radial-gradient(circle at 85% 10%, hsl(var(--primary-100) / 0.5), transparent 45%);
   }
 
   .animate-accordion-down {

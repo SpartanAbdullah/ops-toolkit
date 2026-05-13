@@ -2,29 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, Menu, Package2 } from "lucide-react";
+import { Bell, Boxes, LogOut } from "lucide-react";
 
-import { InstallPwaBanner } from "@/components/app/install-pwa-banner";
 import { MobileBottomNav } from "@/components/app/mobile-bottom-nav";
 import { SignOutButton } from "@/components/auth/sign-out-button";
-import { Button } from "@/components/ui/button";
-import { IconTile } from "@/components/ui/icon-tile";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import {
-  getActiveAppIcon,
-  getActiveAppLabel,
-  matchesAppPath,
-  primaryAppNavItems,
-  secondaryAppNavItems,
-} from "@/lib/app/navigation";
+import { matchesAppPath, primaryAppNavItems } from "@/lib/app/navigation";
 
 type AppShellProps = {
   children: React.ReactNode;
@@ -35,153 +19,131 @@ type AppShellProps = {
   unreadNotifications: number;
 };
 
-function NavSection({
-  pathname,
-  items,
-  compact = false,
-}: {
-  pathname: string;
-  items: typeof primaryAppNavItems;
-  compact?: boolean;
-}) {
-  return (
-    <div className="grid gap-2">
-      {items.map((item) => {
-        const active = matchesAppPath(pathname, item.href);
-        const Icon = item.icon;
-
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cn(
-              "tap-highlight flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition",
-              active ? "bg-primary-50 text-primary-700" : "text-text-secondary hover:bg-slate-50 hover:text-text-primary",
-              compact ? "bg-white" : "",
-            )}
-          >
-            <Icon className="h-4 w-4" />
-            <span>{item.label}</span>
-          </Link>
-        );
-      })}
-    </div>
-  );
-}
-
 export function AppShell({ children, userName, email, roleLabel, activeTeamName, unreadNotifications }: AppShellProps) {
   const pathname = usePathname();
-  const currentLabel = getActiveAppLabel(pathname);
-  const ActiveIcon = getActiveAppIcon(pathname);
+  const userInitial = (userName || email).trim().charAt(0).toUpperCase() || "?";
 
   return (
-    <div className="page-surface min-h-screen bg-app-background">
-      <header className="safe-top sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
-        <div className="mx-auto flex max-w-[1180px] items-center justify-between gap-3 px-4 py-3 sm:px-6">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="lg:hidden">
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="secondary" size="icon">
-                    <Menu className="h-5 w-5" />
-                    <span className="sr-only">Open navigation</span>
-                  </Button>
-                </SheetTrigger>
-                <SheetContent className="max-w-[92vw]">
-                  <SheetHeader>
-                    <div className="flex items-center gap-3">
-                      <IconTile icon={Package2} tone="blue" />
-                      <div>
-                        <SheetTitle>Ops Toolkit</SheetTitle>
-                        <SheetDescription>Fast access for field operations, OT, cash, and reports.</SheetDescription>
-                      </div>
-                    </div>
-                  </SheetHeader>
-                  <div className="mt-6 space-y-6 overflow-y-auto pb-6">
-                    <div className="rounded-3xl border border-border bg-primary-50 p-4">
-                      <p className="section-label">Current workspace</p>
-                      <p className="mt-2 text-lg font-semibold text-text-primary">{activeTeamName ?? "No team selected"}</p>
-                      <p className="mt-1 text-sm text-text-secondary">{roleLabel} access</p>
-                    </div>
-                    <div className="space-y-3">
-                      <p className="section-label">Main</p>
-                      <NavSection pathname={pathname} items={primaryAppNavItems} compact />
-                    </div>
-                    <div className="space-y-3">
-                      <p className="section-label">More</p>
-                      <NavSection pathname={pathname} items={secondaryAppNavItems} compact />
-                    </div>
-                    <div className="rounded-3xl border border-border bg-white p-4">
-                      <p className="font-semibold text-text-primary">{userName}</p>
-                      <p className="mt-1 text-sm text-text-secondary">{email}</p>
-                    </div>
-                    <SignOutButton variant="secondary" className="w-full justify-center" />
-                  </div>
-                </SheetContent>
-              </Sheet>
+    <div className="min-h-screen bg-app-background">
+      <div className="mx-auto flex w-full max-w-[1280px]">
+        {/* Desktop sidebar */}
+        <aside className="hidden w-64 shrink-0 flex-col gap-6 border-r border-border bg-white px-4 py-6 lg:flex">
+          <Link href="/app/overtime" className="flex items-center gap-2.5 px-2">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-600 text-white">
+              <Boxes className="h-5 w-5" />
             </div>
-            <IconTile icon={ActiveIcon} tone="blue" size="sm" className="hidden sm:inline-flex" />
-            <div className="min-w-0">
-              <p className="section-label">Workspace</p>
-              <p className="truncate text-base font-semibold text-text-primary sm:text-lg">{currentLabel}</p>
-              <p className="truncate text-sm text-text-secondary">{activeTeamName ?? "Set up your team workspace"}</p>
+            <div>
+              <p className="font-display text-base font-semibold tracking-tight text-text-primary">Ops Toolkit</p>
+              <p className="text-2xs uppercase tracking-wide text-text-muted">Field operations</p>
             </div>
-          </div>
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="hidden rounded-2xl border border-border bg-white px-4 py-2 text-right md:block">
-              <p className="text-sm font-semibold text-text-primary">{userName}</p>
-              <p className="text-xs text-text-muted">{roleLabel}</p>
-            </div>
-            <div className="flex items-center gap-2 rounded-2xl border border-border bg-white px-3 py-2 text-sm text-text-primary shadow-sm">
-              <Bell className="h-4 w-4 text-primary-700" />
-              <span className="font-semibold">{unreadNotifications}</span>
-            </div>
-          </div>
-        </div>
-      </header>
+          </Link>
 
-      <div className="mx-auto grid max-w-[1280px] gap-6 px-4 py-4 lg:grid-cols-[260px_minmax(0,1fr)] lg:px-6 lg:py-6">
-        <aside className="hidden lg:block">
-          <div className="sticky top-24 space-y-4">
-            <div className="rounded-3xl border border-border bg-white p-5 shadow-card">
+          {activeTeamName ? (
+            <div className="rounded-xl border border-border bg-surface-muted px-3.5 py-3">
+              <p className="text-2xs uppercase tracking-wide text-text-muted">Team</p>
+              <p className="mt-0.5 font-display text-sm font-semibold text-text-primary">{activeTeamName}</p>
+              <p className="mt-1 text-2xs text-text-muted">{roleLabel} access</p>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-accent-100 bg-accent-50 px-3.5 py-3 text-2xs text-accent-foreground">
+              No team yet — visit Team to create or join.
+            </div>
+          )}
+
+          <nav className="flex-1 space-y-1">
+            {primaryAppNavItems.map((item) => {
+              const active = matchesAppPath(pathname, item.href);
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "tap-highlight flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition",
+                    active
+                      ? "bg-primary-600 text-white shadow-sm"
+                      : "text-text-secondary hover:bg-surface-muted hover:text-text-primary",
+                  )}
+                >
+                  <Icon className={cn("h-[18px] w-[18px]", active && "stroke-[2.4]")} />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+
+          <div className="space-y-3">
+            <div className="rounded-xl border border-border bg-white p-3.5">
               <div className="flex items-center gap-3">
-                <IconTile icon={Package2} tone="blue" size="md" />
-                <div>
-                  <p className="text-lg font-semibold text-text-primary">Ops Toolkit</p>
-                  <p className="text-sm text-text-secondary">Field-ready workspace</p>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-50 font-display text-sm font-semibold text-primary-700">
+                  {userInitial}
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-text-primary">{userName}</p>
+                  <p className="truncate text-2xs text-text-muted">{email}</p>
                 </div>
               </div>
-              <div className="mt-5 rounded-2xl bg-primary-50 p-4">
-                <p className="section-label">Team</p>
-                <p className="mt-2 text-lg font-semibold text-text-primary">{activeTeamName ?? "No team selected"}</p>
-                <p className="mt-1 text-sm text-text-secondary">{roleLabel} access</p>
-              </div>
             </div>
-            <div className="rounded-3xl border border-border bg-white p-4 shadow-card">
-              <p className="section-label px-2 pb-2">Main</p>
-              <NavSection pathname={pathname} items={primaryAppNavItems} />
-              <div className="mt-4 border-t border-border pt-4">
-                <p className="section-label px-2 pb-2">More</p>
-                <NavSection pathname={pathname} items={secondaryAppNavItems} />
-              </div>
-            </div>
-            <div className="rounded-3xl border border-border bg-white p-4 shadow-card">
-              <p className="font-semibold text-text-primary">{userName}</p>
-              <p className="mt-1 text-sm text-text-secondary">{email}</p>
-              <SignOutButton variant="secondary" className="mt-4 w-full justify-center" />
-            </div>
+            <SignOutButton variant="outline" size="sm" className="w-full" />
           </div>
         </aside>
 
-        <main className="min-w-0 pb-28 lg:pb-6">
-          <div className="app-page">
-            <InstallPwaBanner />
-            {children}
-          </div>
-        </main>
+        {/* Main column */}
+        <div className="flex min-w-0 flex-1 flex-col">
+          {/* Top bar */}
+          <header className="sticky top-0 z-20 border-b border-border bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/85 safe-top">
+            <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6">
+              <div className="flex min-w-0 items-center gap-3 lg:hidden">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-600 text-white">
+                  <Boxes className="h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate font-display text-[15px] font-semibold leading-tight text-text-primary">
+                    {activeTeamName ?? "Set up your team"}
+                  </p>
+                  <p className="truncate text-2xs uppercase tracking-wide text-text-muted">{roleLabel}</p>
+                </div>
+              </div>
+
+              <div className="hidden lg:block" />
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  aria-label="Notifications"
+                  className="tap-highlight relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-white text-text-secondary transition hover:border-primary-200 hover:text-primary-700"
+                >
+                  <Bell className="h-[18px] w-[18px]" />
+                  {unreadNotifications > 0 ? (
+                    <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-accent-500 px-1.5 text-2xs font-semibold text-primary-700">
+                      {unreadNotifications > 9 ? "9+" : unreadNotifications}
+                    </span>
+                  ) : null}
+                </button>
+                <button
+                  type="button"
+                  aria-label="Profile"
+                  className="tap-highlight inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary-50 font-display text-sm font-semibold text-primary-700 lg:hidden"
+                >
+                  <Link href="/app/profile" className="flex h-full w-full items-center justify-center">
+                    {userInitial}
+                  </Link>
+                </button>
+              </div>
+            </div>
+          </header>
+
+          {/* Page content */}
+          <main className="min-w-0 flex-1 pb-tabbar lg:pb-8">
+            <div className="app-page">{children}</div>
+          </main>
+        </div>
       </div>
 
       <MobileBottomNav />
     </div>
   );
 }
+
+// Re-export for convenience in feature pages
+export { Badge as ShellBadge, LogOut as ShellLogOut };

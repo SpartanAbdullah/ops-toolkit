@@ -1,55 +1,36 @@
 import { TeamMemberRole } from "@prisma/client";
-import { KeyRound, ShieldCheck, Users2 } from "lucide-react";
+import { ShieldCheck, Users2 } from "lucide-react";
 
 import { AppPageHeader } from "@/components/app/app-page-header";
 import { CreateTeamForm, JoinTeamForm, RegenerateJoinCodeButton } from "@/components/app/team-forms";
 import { Badge } from "@/components/ui/badge";
 import { Callout } from "@/components/ui/callout";
 import { Card, CardContent } from "@/components/ui/card";
-import { ListRow } from "@/components/ui/list-row";
 import { SectionHeader } from "@/components/ui/section-header";
-import { StatCard } from "@/components/ui/stat-card";
-import { SummaryBlock } from "@/components/ui/summary-block";
 import { getRoleBadgeVariant, getRoleLabel } from "@/lib/app/team";
 import { getAppContext } from "@/lib/app/session";
 import { prisma } from "@/lib/prisma";
 import { buildMetadata } from "@/lib/site";
 
-export const metadata = buildMetadata({
-  title: "Team",
-  description: "Create a team, join with a code, and manage the shared workspace membership inside the private Ops Toolkit app.",
-  path: "/app/team",
-  noIndex: true,
-});
+export const metadata = buildMetadata({ title: "Team" });
 
 export default async function TeamPage() {
   const context = await getAppContext();
   const roleLabel = getRoleLabel(context.resolvedRole);
   const roleVariant = getRoleBadgeVariant(context.resolvedRole);
+  const isAdmin = context.activeMembership?.role === TeamMemberRole.admin;
 
   const teamData = context.activeTeam
     ? await prisma.team.findUnique({
         where: { id: context.activeTeam.id },
         include: {
           members: {
-            include: {
-              user: {
-                include: {
-                  profile: true,
-                },
-              },
-            },
-            orderBy: {
-              createdAt: "asc",
-            },
+            include: { user: { include: { profile: true } } },
+            orderBy: { createdAt: "asc" },
           },
           inviteCodes: {
-            where: {
-              revokedAt: null,
-            },
-            orderBy: {
-              createdAt: "desc",
-            },
+            where: { revokedAt: null },
+            orderBy: { createdAt: "desc" },
             take: 1,
           },
         },
@@ -57,124 +38,104 @@ export default async function TeamPage() {
     : null;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 animate-fade-up">
       <AppPageHeader
-        eyebrow="Teams"
-        badge={context.activeTeam ? "Shared workspace active" : "No team yet"}
-        title="Create, join, and review your workspace team"
-        description="Keep team setup simple: one clear join code, visible member roles, and a structure that works on phone screens."
+        eyebrow="Team"
+        badge={teamData ? `${teamData.members.length} member${teamData.members.length === 1 ? "" : "s"}` : "No team"}
+        title={teamData?.name ?? "Set up your workspace"}
+        description={teamData ? "Members, role, and the active join code." : "Create a team or join with a code."}
       />
 
       {!teamData ? (
-        <div className="grid gap-6 xl:grid-cols-2">
+        <>
           <Card>
-            <CardContent className="space-y-5 p-5 sm:p-6">
+            <CardContent className="space-y-5">
               <SectionHeader
                 eyebrow="Create"
                 title="Start a new team"
-                description="Set up a workspace for your warehouse, site, payroll desk, or admin operation."
+                description="One workspace for OT, petty cash, and approvals."
               />
               <CreateTeamForm />
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="space-y-5 p-5 sm:p-6">
+            <CardContent className="space-y-5">
               <SectionHeader
                 eyebrow="Join"
-                title="Join an existing team"
-                description="Use the 6-character code from a team admin."
+                title="Join with a code"
+                description="Use the 6-character code shared by an admin."
               />
               <JoinTeamForm />
-              <Callout
-                title="One active team per user for now"
-                description="The model supports broader team membership later, but the current product keeps the active workspace simple."
-                icon={ShieldCheck}
-                tone="amber"
-              />
             </CardContent>
           </Card>
-        </div>
+        </>
       ) : (
         <>
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            <StatCard
-              label="Current team"
-              value={teamData.name}
-              description="Your active workspace name."
-              icon={Users2}
-              tone="blue"
-            />
-            <StatCard
-              label="Your access"
-              value={<Badge variant={roleVariant}>{roleLabel}</Badge>}
-              description="Your current role in this workspace."
-              icon={ShieldCheck}
-              tone="green"
-            />
-            <StatCard
-              label="Members"
-              value={teamData.members.length}
-              description="People connected to this workspace."
-              icon={Users2}
-              tone="blue"
-            />
-          </div>
-
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-            <Card>
-              <CardContent className="space-y-5 p-5 sm:p-6">
-                <SectionHeader
-                  eyebrow="Join code"
-                  title="Share this code with your team"
-                  description="New members use this code to attach their account to the workspace."
-                />
-                <SummaryBlock
-                  label="Active code"
-                  value={<span className="font-display text-3xl tracking-[0.22em]">{teamData.inviteCodes[0]?.code ?? "------"}</span>}
-                  hint="Rotate the code any time if you need a new invite."
-                  tone="primary"
-                />
-                {context.activeMembership?.role === TeamMemberRole.admin ? (
-                  <RegenerateJoinCodeButton />
-                ) : (
-                  <Callout
-                    title="Only admins can rotate the code"
-                    description="Workers can view the code and team details, but admin users manage the invite flow."
-                    icon={ShieldCheck}
-                    tone="blue"
-                  />
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="space-y-5 p-5 sm:p-6">
-                <SectionHeader
-                  eyebrow="Members"
-                  title="People in this workspace"
-                  description="Member rows are optimized for quick scanning on mobile."
-                />
-                <div className="space-y-3">
-                  {teamData.members.map((member) => {
-                    const memberRoleLabel = getRoleLabel(member.role);
-                    const memberVariant = getRoleBadgeVariant(member.role);
-
-                    return (
-                      <ListRow
-                        key={member.id}
-                        title={member.user.profile?.fullName || member.user.email}
-                        subtitle={member.user.email}
-                        meta={member.createdAt.toLocaleDateString("en-AE", { dateStyle: "medium" })}
-                        badges={<Badge variant={memberVariant}>{memberRoleLabel}</Badge>}
-                        aside={member.role === TeamMemberRole.admin ? <Badge variant="blue">Admin</Badge> : <Badge variant="subtle">Member</Badge>}
-                      />
-                    );
-                  })}
+          {/* Join code card */}
+          <Card>
+            <CardContent className="space-y-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <p className="section-label">Active join code</p>
+                  <p className="font-display text-3xl font-semibold tracking-[0.18em] text-text-primary">
+                    {teamData.inviteCodes[0]?.code ?? "------"}
+                  </p>
+                  <p className="text-2xs text-text-muted">Share with new members to join the workspace.</p>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+                <Badge variant={roleVariant}>{roleLabel}</Badge>
+              </div>
+              {isAdmin ? (
+                <RegenerateJoinCodeButton />
+              ) : (
+                <Callout
+                  title="Workers can view the code"
+                  description="Only admins can rotate the join code."
+                  icon={ShieldCheck}
+                  tone="navy"
+                />
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Members list */}
+          <Card>
+            <CardContent className="space-y-4">
+              <SectionHeader
+                eyebrow="Members"
+                title={`${teamData.members.length} ${teamData.members.length === 1 ? "person" : "people"}`}
+              />
+              <div className="space-y-2">
+                {teamData.members.map((member) => {
+                  const memberRoleLabel = getRoleLabel(member.role);
+                  const memberVariant = getRoleBadgeVariant(member.role);
+                  const name = member.user.profile?.fullName || member.user.email;
+                  const initial = name.trim().charAt(0).toUpperCase();
+                  return (
+                    <div key={member.id} className="flex items-center gap-3 rounded-xl border border-border bg-white p-3.5">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-50 font-display text-sm font-semibold text-primary-700">
+                        {initial}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-display text-sm font-semibold text-text-primary">{name}</p>
+                        <p className="truncate text-2xs text-text-muted">{member.user.email}</p>
+                      </div>
+                      <Badge variant={memberVariant}>{memberRoleLabel}</Badge>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+
+          {!isAdmin ? (
+            <Callout
+              title="Need to leave or switch teams?"
+              description="Ask an admin to rotate the code or contact ops support."
+              icon={Users2}
+              tone="slate"
+            />
+          ) : null}
         </>
       )}
     </div>

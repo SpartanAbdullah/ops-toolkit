@@ -5,9 +5,7 @@ import { buildMetadata } from "@/lib/site";
 
 export const metadata = buildMetadata({
   title: "Workspace",
-  description: "The private Ops Toolkit app shell for saved operations data, teams, and collaborative workflows.",
-  path: "/app",
-  noIndex: true,
+  description: "Overtime and petty cash workspace.",
 });
 
 export const dynamic = "force-dynamic";

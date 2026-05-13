@@ -1,6 +1,5 @@
 import type { LucideIcon } from "lucide-react";
 
-import { Card, CardContent } from "@/components/ui/card";
 import { IconTile } from "@/components/ui/icon-tile";
 import { cn } from "@/lib/utils";
 import type { IconTone } from "@/lib/types";
@@ -9,26 +8,32 @@ type StatCardProps = {
   label: string;
   value: React.ReactNode;
   description?: string;
-  icon: LucideIcon;
+  icon?: LucideIcon;
   tone?: IconTone;
   accent?: React.ReactNode;
   className?: string;
+  trend?: { label: string; tone?: "positive" | "negative" | "neutral" };
 };
 
-export function StatCard({ label, value, description, icon, tone = "blue", accent, className }: StatCardProps) {
+const trendStyles = {
+  positive: "text-mint-600",
+  negative: "text-danger-600",
+  neutral: "text-text-muted",
+};
+
+export function StatCard({ label, value, description, icon, tone = "navy", accent, className, trend }: StatCardProps) {
   return (
-    <Card className={cn("h-full", className)}>
-      <CardContent className="space-y-4 p-5 sm:p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-text-secondary">{label}</p>
-            <div className="text-2xl font-semibold tracking-tight text-text-primary">{value}</div>
-          </div>
-          <IconTile icon={icon} tone={tone} size="sm" />
-        </div>
-        {description ? <p className="text-sm leading-6 text-text-secondary">{description}</p> : null}
-        {accent ? <div>{accent}</div> : null}
-      </CardContent>
-    </Card>
+    <div className={cn("flex h-full flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-card sm:p-5", className)}>
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-xs font-medium uppercase tracking-wide text-text-muted">{label}</p>
+        {icon ? <IconTile icon={icon} tone={tone} size="sm" /> : null}
+      </div>
+      <div className="font-display text-2xl font-semibold tracking-tight text-text-primary sm:text-[28px] sm:leading-tight">
+        {value}
+      </div>
+      {description ? <p className="text-sm leading-5 text-text-secondary">{description}</p> : null}
+      {trend ? <p className={cn("text-xs font-medium", trendStyles[trend.tone ?? "neutral"])}>{trend.label}</p> : null}
+      {accent ? <div className="pt-1">{accent}</div> : null}
+    </div>
   );
 }

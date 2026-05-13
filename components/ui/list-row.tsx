@@ -9,25 +9,29 @@ type ListRowProps = {
   details?: React.ReactNode;
   actions?: React.ReactNode;
   className?: string;
+  leading?: React.ReactNode;
 };
 
-export function ListRow({ title, subtitle, meta, badges, aside, details, actions, className }: ListRowProps) {
+export function ListRow({ title, subtitle, meta, badges, aside, details, actions, className, leading }: ListRowProps) {
   return (
-    <div className={cn("rounded-3xl border border-border bg-white p-4 shadow-card sm:p-5", className)}>
-      <div className="flex flex-col gap-4">
+    <div className={cn("rounded-2xl border border-border bg-white p-4 shadow-card transition hover:border-primary-100", className)}>
+      <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="text-base font-semibold text-text-primary">{title}</p>
-              {badges}
+          <div className="flex min-w-0 items-start gap-3">
+            {leading ? <div className="shrink-0">{leading}</div> : null}
+            <div className="min-w-0 space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="font-display text-[15px] font-semibold leading-tight text-text-primary">{title}</p>
+                {badges}
+              </div>
+              {subtitle ? <div className="text-sm leading-5 text-text-secondary">{subtitle}</div> : null}
+              {meta ? <div className="text-2xs uppercase tracking-wide text-text-muted">{meta}</div> : null}
             </div>
-            {subtitle ? <div className="text-sm text-text-secondary">{subtitle}</div> : null}
-            {meta ? <div className="text-xs uppercase tracking-[0.18em] text-text-muted">{meta}</div> : null}
           </div>
-          {aside ? <div className="sm:text-right">{aside}</div> : null}
+          {aside ? <div className="shrink-0 sm:text-right">{aside}</div> : null}
         </div>
-        {details ? <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm leading-6 text-text-secondary">{details}</div> : null}
-        {actions ? <div className="flex flex-wrap gap-3">{actions}</div> : null}
+        {details ? <div className="rounded-xl bg-surface-muted px-3.5 py-3 text-sm leading-5 text-text-secondary">{details}</div> : null}
+        {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
       </div>
     </div>
   );

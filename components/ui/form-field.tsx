@@ -6,17 +6,19 @@ type FormFieldProps = {
   error?: string;
   htmlFor?: string;
   children: React.ReactNode;
+  optional?: boolean;
 };
 
-export function FormField({ label, hint, error, htmlFor, children }: FormFieldProps) {
+export function FormField({ label, hint, error, htmlFor, children, optional }: FormFieldProps) {
   return (
-    <div className="space-y-3">
-      <div className="space-y-1.5">
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
         <label htmlFor={htmlFor} className="text-sm font-semibold text-text-primary">
           {label}
         </label>
-        {hint ? <p className="text-sm leading-5 text-text-muted">{hint}</p> : null}
+        {optional ? <span className="text-2xs uppercase tracking-wide text-text-muted">Optional</span> : null}
       </div>
+      {hint ? <p className="text-sm leading-5 text-text-muted">{hint}</p> : null}
       {children}
       {error ? <InlineMessage tone="error">{error}</InlineMessage> : null}
     </div>

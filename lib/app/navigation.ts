@@ -1,35 +1,28 @@
 import type { LucideIcon } from "lucide-react";
-import { BarChart3, CreditCard, Home, PercentCircle, Settings, ShieldCheck, UserRound, Users2 } from "lucide-react";
+import { Clock3, Users, UserRound, Wallet } from "lucide-react";
 
 export type AppNavItem = {
   href: string;
   label: string;
   icon: LucideIcon;
+  description?: string;
 };
 
 export const primaryAppNavItems: AppNavItem[] = [
-  { href: "/app", label: "Dashboard", icon: Home },
-  { href: "/app/overtime", label: "OT", icon: PercentCircle },
-  { href: "/app/petty-cash", label: "Cash", icon: CreditCard },
-  { href: "/app/reports", label: "Reports", icon: BarChart3 },
-];
-
-export const secondaryAppNavItems: AppNavItem[] = [
-  { href: "/app/team", label: "Teams", icon: Users2 },
-  { href: "/app/profile", label: "Profile", icon: UserRound },
-  { href: "/app/settings", label: "Settings", icon: Settings },
+  { href: "/app/overtime", label: "Overtime", icon: Clock3, description: "Log shifts, approve, pay" },
+  { href: "/app/petty-cash", label: "Cash", icon: Wallet, description: "Ledger and reimbursements" },
+  { href: "/app/team", label: "Team", icon: Users, description: "Members and invites" },
+  { href: "/app/profile", label: "Profile", icon: UserRound, description: "Your account" },
 ];
 
 export function matchesAppPath(pathname: string, href: string) {
-  return href === "/app" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
+  if (href === "/app") {
+    return pathname === href;
+  }
+
+  return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function getActiveAppLabel(pathname: string) {
-  const match = [...primaryAppNavItems, ...secondaryAppNavItems].find((item) => matchesAppPath(pathname, item.href));
-  return match?.label ?? "Workspace";
-}
-
-export function getActiveAppIcon(pathname: string) {
-  const match = [...primaryAppNavItems, ...secondaryAppNavItems].find((item) => matchesAppPath(pathname, item.href));
-  return match?.icon ?? ShieldCheck;
+export function getActiveAppItem(pathname: string) {
+  return primaryAppNavItems.find((item) => matchesAppPath(pathname, item.href));
 }

@@ -3,19 +3,13 @@ import { cn } from "@/lib/utils";
 type StickyActionBarProps = {
   children: React.ReactNode;
   className?: string;
-  offsetForMobileNav?: boolean;
 };
 
-export function StickyActionBar({
-  children,
-  className,
-  offsetForMobileNav = false,
-}: StickyActionBarProps) {
+export function StickyActionBar({ children, className }: StickyActionBarProps) {
   return (
     <div
       className={cn(
-        "sticky z-20 mt-8 rounded-[1.4rem] border border-border bg-white/96 px-4 py-4 shadow-[0_-10px_30px_-24px_rgba(15,23,42,0.45)] backdrop-blur supports-[backdrop-filter]:bg-white/88 sm:px-5",
-        offsetForMobileNav ? "bottom-24 lg:bottom-0" : "bottom-0",
+        "sticky bottom-0 z-10 -mx-5 mt-6 border-t border-border bg-white/96 px-5 py-4 backdrop-blur supports-[backdrop-filter]:bg-white/90 sm:-mx-6 sm:px-6",
         className,
       )}
       style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" }}

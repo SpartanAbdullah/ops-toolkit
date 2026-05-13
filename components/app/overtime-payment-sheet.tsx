@@ -31,18 +31,20 @@ export function OvertimePaymentSheet({
   buttonLabel,
   buttonVariant = "secondary",
   buttonSize = "default",
+  preselectedWorkerId,
 }: {
   workers: WorkerOption[];
   buttonLabel: string;
   buttonVariant?: ButtonProps["variant"];
   buttonSize?: ButtonProps["size"];
+  preselectedWorkerId?: string;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [workerQuery, setWorkerQuery] = useState("");
   const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const [isPending, startTransition] = useTransition();
-  const firstWorkerId = workers[0]?.id ?? "";
+  const defaultWorkerId = preselectedWorkerId ?? workers[0]?.id ?? "";
   const {
     register,
     watch,
@@ -54,7 +56,7 @@ export function OvertimePaymentSheet({
   } = useForm<OvertimePaymentValues>({
     resolver: zodResolver(overtimePaymentSchema),
     defaultValues: {
-      workerUserId: firstWorkerId,
+      workerUserId: defaultWorkerId,
       paidUntilDate: getTodayInputValue(),
       note: "",
     },
@@ -63,45 +65,34 @@ export function OvertimePaymentSheet({
   const selectedWorker = workers.find((worker) => worker.id === selectedWorkerId) ?? null;
   const filteredWorkers = useMemo(() => {
     const normalizedQuery = workerQuery.trim().toLowerCase();
-
-    if (!normalizedQuery) {
-      return workers;
-    }
-
+    if (!normalizedQuery) return workers;
     return workers.filter((worker) => worker.name.toLowerCase().includes(normalizedQuery));
   }, [workerQuery, workers]);
 
   useEffect(() => {
-    if (!open) {
-      return;
-    }
-
+    if (!open) return;
     reset({
-      workerUserId: firstWorkerId,
+      workerUserId: defaultWorkerId,
       paidUntilDate: getTodayInputValue(),
       note: "",
     });
     setWorkerQuery("");
     setMessage(null);
-  }, [firstWorkerId, open, reset]);
+  }, [defaultWorkerId, open, reset]);
 
   const onSubmit = handleSubmit((values) => {
     setMessage(null);
     startTransition(async () => {
       const result = await markOvertimePaymentAction(values);
-
       if (result.status === "error") {
         if (result.fieldErrors) {
           Object.entries(result.fieldErrors).forEach(([field, error]) => {
-            if (error) {
-              setError(field as keyof OvertimePaymentValues, { message: error });
-            }
+            if (error) setError(field as keyof OvertimePaymentValues, { message: error });
           });
         }
         setMessage({ tone: "error", text: result.message });
         return;
       }
-
       setMessage({ tone: "success", text: result.message });
       setOpen(false);
       router.refresh();
@@ -113,20 +104,21 @@ export function OvertimePaymentSheet({
       <SheetTrigger asChild>
         <Button variant={buttonVariant} size={buttonSize} disabled={!workers.length}>{buttonLabel}</Button>
       </SheetTrigger>
-      <SheetContent className="max-w-[96vw] overflow-y-auto p-0 sm:max-w-lg">
-        <div className="sticky top-0 z-10 border-b border-slate-100 bg-white/96 px-6 py-6 backdrop-blur">
-          <SheetHeader className="space-y-4">
-            <div className="flex items-start gap-4">
-              <IconTile icon={CircleDollarSign} tone="green" size="lg" />
-              <div className="space-y-2">
-                <SheetTitle>Mark overtime paid</SheetTitle>
-                <SheetDescription>Record the latest paid-until date so workers can see whether their approved overtime is up to date.</SheetDescription>
+      <SheetContent className="sm:max-w-lg">
+        <div className="flex h-full max-h-[94vh] flex-col overflow-y-auto">
+          <div className="border-b border-border px-5 pb-4 pt-6 sm:px-6">
+            <SheetHeader>
+              <div className="flex items-start gap-3">
+                <IconTile icon={CircleDollarSign} tone="mint" size="md" />
+                <div className="space-y-1">
+                  <SheetTitle>Mark overtime paid</SheetTitle>
+                  <SheetDescription>Approved OT on or before this date will show as paid.</SheetDescription>
+                </div>
               </div>
-            </div>
-          </SheetHeader>
-        </div>
-        <div className="space-y-6 px-6 py-6">
-          <form className="space-y-6 pb-2" onSubmit={onSubmit}>
+            </SheetHeader>
+          </div>
+
+          <form className="flex flex-1 flex-col space-y-5 px-5 py-5 sm:px-6" onSubmit={onSubmit}>
             <input type="hidden" {...register("workerUserId")} />
             <FormField label="Worker" htmlFor="payment-worker" error={errors.workerUserId?.message}>
               <div className="space-y-3">
@@ -134,20 +126,20 @@ export function OvertimePaymentSheet({
                   id="payment-worker"
                   value={workerQuery}
                   onChange={(event) => setWorkerQuery(event.target.value)}
-                  placeholder="Search worker by name"
+                  placeholder="Search workers"
                   autoComplete="off"
                 />
-                <div className="max-h-64 space-y-2 overflow-y-auto rounded-[1.3rem] border border-border bg-slate-50 p-2">
+                <div className="max-h-56 space-y-1.5 overflow-y-auto rounded-xl border border-border bg-surface-muted p-1.5">
                   {filteredWorkers.length ? (
                     filteredWorkers.map((worker) => (
                       <button
                         key={worker.id}
                         type="button"
                         className={cn(
-                          "w-full rounded-[1.1rem] border px-4 py-3 text-left text-sm font-medium transition",
+                          "tap-highlight w-full rounded-lg px-3.5 py-2.5 text-left text-sm font-medium transition",
                           selectedWorkerId === worker.id
-                            ? "border-primary-600 bg-primary-50 text-primary-700"
-                            : "border-transparent bg-white text-text-primary hover:border-primary-100 hover:bg-primary-50/60",
+                            ? "bg-primary-600 text-white shadow-sm"
+                            : "bg-white text-text-primary hover:bg-primary-50",
                         )}
                         onClick={() => {
                           setValue("workerUserId", worker.id, { shouldValidate: true, shouldDirty: true });
@@ -159,39 +151,33 @@ export function OvertimePaymentSheet({
                     ))
                   ) : (
                     <EmptyState
-                      title="No workers match this search"
-                      description="Try a shorter name or clear the search field."
-                      className="min-h-[180px] border-0 bg-transparent px-3 py-6 shadow-none"
+                      title="No matches"
+                      description="Try a shorter name or clear the search."
+                      className="min-h-[120px] border-0 bg-transparent px-3 py-4"
                     />
                   )}
                 </div>
-                {selectedWorker ? (
-                  <p className="text-sm text-text-secondary">Saving payment status for <span className="font-semibold text-text-primary">{selectedWorker.name}</span>.</p>
-                ) : null}
               </div>
             </FormField>
 
-            <FormField label="Paid until date" htmlFor="paid-until-date" hint="Approved overtime on or before this date will show as paid." error={errors.paidUntilDate?.message}>
+            <FormField label="Paid until" htmlFor="paid-until-date" error={errors.paidUntilDate?.message}>
               <Input id="paid-until-date" type="date" {...register("paidUntilDate")} />
             </FormField>
 
-            <FormField label="Note" htmlFor="payment-note" hint="Optional reference such as payroll batch, WPS cycle, or cash handover." error={errors.note?.message}>
-              <Textarea id="payment-note" className="min-h-[110px]" placeholder="Optional payroll note or reference." {...register("note")} />
+            <FormField label="Note" htmlFor="payment-note" optional hint="Payroll batch, WPS cycle, etc." error={errors.note?.message}>
+              <Textarea id="payment-note" className="min-h-[80px]" placeholder="Optional reference" {...register("note")} />
             </FormField>
 
             {message ? <InlineMessage tone={message.tone}>{message.text}</InlineMessage> : null}
 
             <StickyActionBar>
-              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-                <p className="text-sm text-text-secondary">Use the latest paid-through date so workers and admins see the same payment checkpoint.</p>
-                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-end">
-                  <Button type="submit" size="lg" disabled={isPending || !workers.length}>
-                    {isPending ? "Saving payment" : "Save payment status"}
-                  </Button>
-                  <Button type="button" variant="secondary" size="lg" onClick={() => setOpen(false)}>
-                    Cancel
-                  </Button>
-                </div>
+              <div className="flex gap-2">
+                <Button type="button" variant="secondary" className="flex-1" onClick={() => setOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" className="flex-[2]" disabled={isPending || !selectedWorker}>
+                  {isPending ? "Saving..." : "Save payment"}
+                </Button>
               </div>
             </StickyActionBar>
           </form>

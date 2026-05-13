@@ -2,9 +2,9 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Clock3, MoonStar, ShieldCheck } from "lucide-react";
+import { Clock3, MoonStar, Plus, ShieldCheck } from "lucide-react";
 import { useForm } from "react-hook-form";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { createOvertimeEntryAction } from "@/app/app/overtime/actions";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { StickyActionBar } from "@/components/ui/sticky-action-bar";
 import { Textarea } from "@/components/ui/textarea";
+import { formatCurrency } from "@/lib/utils";
 import {
   calculateOvertime,
   formatMinutesAsHours,
@@ -38,6 +39,8 @@ export function OvertimeEntrySheet({
   buttonLabel,
   buttonVariant = "default",
   buttonSize = "default",
+  buttonClassName,
+  buttonIcon = false,
   settings,
   holidayDates,
   workerSalary,
@@ -46,12 +49,15 @@ export function OvertimeEntrySheet({
   buttonLabel: string;
   buttonVariant?: ButtonProps["variant"];
   buttonSize?: ButtonProps["size"];
+  buttonClassName?: string;
+  buttonIcon?: boolean;
   settings: OvertimeSettingsSnapshot;
   holidayDates: string[];
   workerSalary: number | null;
   approvalLabel: string;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -67,6 +73,16 @@ export function OvertimeEntrySheet({
     defaultValues: buildDefaultValues(),
   });
 
+  // Open the sheet automatically when the URL says ?action=log
+  useEffect(() => {
+    if (searchParams.get("action") === "log") {
+      setOpen(true);
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("action");
+      router.replace(`/app/overtime${params.toString() ? `?${params.toString()}` : ""}`, { scroll: false });
+    }
+  }, [searchParams, router]);
+
   const workedDate = watch("workedDate");
   const startTime = watch("startTime");
   const endTime = watch("endTime");
@@ -76,7 +92,6 @@ export function OvertimeEntrySheet({
     if (!open) {
       return;
     }
-
     reset(buildDefaultValues());
     setMessage(null);
   }, [open, reset]);
@@ -101,7 +116,6 @@ export function OvertimeEntrySheet({
     setMessage(null);
     startTransition(async () => {
       const result = await createOvertimeEntryAction(values);
-
       if (result.status === "error") {
         if (result.fieldErrors) {
           Object.entries(result.fieldErrors).forEach(([field, error]) => {
@@ -113,7 +127,6 @@ export function OvertimeEntrySheet({
         setMessage({ tone: "error", text: result.message });
         return;
       }
-
       setMessage({ tone: "success", text: result.message });
       setOpen(false);
       router.refresh();
@@ -123,48 +136,37 @@ export function OvertimeEntrySheet({
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant={buttonVariant} size={buttonSize}>{buttonLabel}</Button>
+        <Button variant={buttonVariant} size={buttonSize} className={buttonClassName}>
+          {buttonIcon ? <Plus className="h-4 w-4" /> : null}
+          {buttonLabel}
+        </Button>
       </SheetTrigger>
-      <SheetContent className="max-w-[96vw] overflow-y-auto p-0 sm:max-w-2xl">
-        <div className="sticky top-0 z-10 border-b border-slate-100 bg-white/96 px-6 py-6 backdrop-blur">
-          <SheetHeader className="space-y-4">
-            <div className="flex items-start gap-4">
-              <IconTile icon={Clock3} tone="purple" size="lg" />
-              <div className="space-y-2">
-                <SheetTitle>Log overtime shift</SheetTitle>
-                <SheetDescription>Capture a shift quickly, preview total worked time and AED, then send it into the approval flow with the current team settings.</SheetDescription>
+      <SheetContent className="sm:max-w-xl">
+        <div className="flex h-full max-h-[94vh] flex-col overflow-y-auto">
+          <div className="space-y-1 border-b border-border px-5 pb-4 pt-6 sm:px-6">
+            <SheetHeader>
+              <div className="flex items-start gap-3">
+                <IconTile icon={Clock3} tone="amber" size="md" />
+                <div className="space-y-1">
+                  <SheetTitle>Log overtime shift</SheetTitle>
+                  <SheetDescription>{approvalLabel}</SheetDescription>
+                </div>
               </div>
-            </div>
-          </SheetHeader>
-        </div>
-        <div className="space-y-8 px-6 py-6">
-          <div className="rounded-[1.5rem] border border-slate-100 bg-slate-50/85 p-5">
-            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Approval path</p>
-                <p className="mt-2 text-base font-semibold text-slate-950">{approvalLabel}</p>
-                <p className="mt-2 text-sm leading-6 text-slate-600">The live preview below uses your current overtime mode, standard daily hours, weekend rules, and any configured Ramadan or holiday settings.</p>
-              </div>
-              <Badge variant={settings.calculationMode === "simple" ? "blue" : "purple"}>
+            </SheetHeader>
+            <div className="flex items-center gap-2 pt-3">
+              <Badge variant={settings.calculationMode === "simple" ? "navy" : "amber"}>
                 {settings.calculationMode === "simple" ? "Simple Mode" : "MOHRE-Compliant"}
               </Badge>
+              <Badge variant="subtle">{preview.standardDailyHoursApplied.toFixed(1)} hr standard{preview.ramadanApplied ? " (Ramadan)" : ""}</Badge>
             </div>
           </div>
 
-          <form className="space-y-6 pb-2" onSubmit={onSubmit}>
-            <div className="grid gap-5 md:grid-cols-2">
-              <FormField label="Shift date" htmlFor="overtime-date" error={errors.workedDate?.message}>
-                <Input id="overtime-date" type="date" {...register("workedDate")} />
-              </FormField>
-              <div className="space-y-3 rounded-[1.3rem] border border-slate-200/80 bg-slate-50/80 px-4 py-4">
-                <p className="text-sm font-semibold text-slate-900">Standard hours today</p>
-                <p className="text-sm leading-6 text-slate-600">
-                  {preview.standardDailyHoursApplied.toFixed(2)} hours {preview.ramadanApplied ? "after Ramadan adjustment" : "based on current settings"}.
-                </p>
-              </div>
-            </div>
+          <form className="flex flex-1 flex-col space-y-5 px-5 py-5 sm:px-6" onSubmit={onSubmit}>
+            <FormField label="Shift date" htmlFor="overtime-date" error={errors.workedDate?.message}>
+              <Input id="overtime-date" type="date" {...register("workedDate")} />
+            </FormField>
 
-            <div className="grid gap-5 md:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2">
               <FormField label="Start time" htmlFor="overtime-start" error={errors.startTime?.message}>
                 <Input id="overtime-start" type="time" {...register("startTime")} />
               </FormField>
@@ -173,68 +175,62 @@ export function OvertimeEntrySheet({
               </FormField>
             </div>
 
-            <label className="flex items-center gap-3 rounded-[1.2rem] border border-slate-200/80 bg-white/90 px-4 py-4 text-sm text-slate-700 shadow-sm">
-              <input type="checkbox" className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-200" {...register("overnight")} />
+            <label className="flex items-start gap-3 rounded-xl border border-border bg-surface-muted px-4 py-3 text-sm text-text-secondary">
+              <input type="checkbox" className="mt-0.5 h-4 w-4 rounded border-border text-accent-600 focus:ring-accent-500" {...register("overnight")} />
               <span>
-                This shift ended after midnight
-                <span className="mt-1 block text-xs text-slate-500">Use this when the end time belongs to the next calendar day.</span>
+                <span className="block font-semibold text-text-primary">Ended after midnight</span>
+                <span className="block text-2xs leading-4 text-text-muted">Use this when the end time is on the next day.</span>
               </span>
             </label>
 
-            <FormField label="Notes" htmlFor="overtime-notes" hint="Optional context for the approver, such as site, urgent task, or public holiday work." error={errors.notes?.message}>
-              <Textarea id="overtime-notes" className="min-h-[120px]" placeholder="Optional context for the shift or anything the approver should know." {...register("notes")} />
+            <FormField label="Notes" htmlFor="overtime-notes" optional error={errors.notes?.message}>
+              <Textarea id="overtime-notes" className="min-h-[88px]" placeholder="Context for the approver — site, urgent task, etc." {...register("notes")} />
             </FormField>
 
-            <div className="grid gap-4 lg:grid-cols-3">
-              <div className="rounded-[1.4rem] border border-slate-200/80 bg-white p-4 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Total worked</p>
-                <p className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">{formatMinutesAsHours(preview.totalWorkedMinutes)}</p>
+            {/* Live preview */}
+            <div className="rounded-2xl border border-border bg-surface-muted p-4">
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <p className="text-2xs uppercase tracking-wide text-text-muted">Worked</p>
+                  <p className="mt-1 font-display text-base font-semibold text-text-primary">{formatMinutesAsHours(preview.totalWorkedMinutes)}</p>
+                </div>
+                <div>
+                  <p className="text-2xs uppercase tracking-wide text-text-muted">OT</p>
+                  <p className="mt-1 font-display text-base font-semibold text-accent-foreground">{formatMinutesAsHours(preview.overtimeMinutes)}</p>
+                </div>
+                <div>
+                  <p className="text-2xs uppercase tracking-wide text-text-muted">AED</p>
+                  <p className="mt-1 font-display text-base font-semibold text-mint-600">{formatCurrency(preview.amount)}</p>
+                </div>
               </div>
-              <div className="rounded-[1.4rem] border border-slate-200/80 bg-white p-4 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Overtime</p>
-                <p className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">{formatMinutesAsHours(preview.overtimeMinutes)}</p>
-              </div>
-              <div className="rounded-[1.4rem] border border-slate-200/80 bg-slate-950 p-4 text-white shadow-soft">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-300">Estimated OT AED</p>
-                <p className="mt-3 text-2xl font-semibold tracking-tight">AED {preview.amount.toFixed(2)}</p>
-              </div>
-            </div>
-
-            <div className="space-y-4 rounded-[1.5rem] border border-slate-200/80 bg-slate-50/70 p-5">
-              <div className="flex items-start gap-3">
-                <IconTile icon={ShieldCheck} tone={preview.error ? "red" : "blue"} size="sm" />
-                <div className="space-y-2">
-                  <p className="text-sm font-semibold text-slate-900">Calculation preview</p>
-                  <p className="text-sm leading-6 text-slate-600">{preview.error || preview.calculationSummary || "Enter the shift times to preview overtime."}</p>
-                  <p className="text-sm text-slate-500">{preview.rateDescription || "Rate details will appear once the form is complete."}</p>
+              <div className="mt-3 flex items-start gap-2 border-t border-border pt-3">
+                <ShieldCheck className={`mt-0.5 h-4 w-4 shrink-0 ${preview.error ? "text-danger-600" : "text-primary-600"}`} />
+                <div className="space-y-1 text-sm leading-5 text-text-secondary">
+                  <p>{preview.error || preview.calculationSummary || "Enter shift times to preview overtime."}</p>
+                  {preview.rateDescription ? <p className="text-2xs text-text-muted">{preview.rateDescription}</p> : null}
                 </div>
               </div>
               {preview.nightOvertimeMinutes > 0 ? (
-                <div className="rounded-[1.2rem] border border-violet-200 bg-violet-50/70 px-4 py-3 text-sm text-violet-700">
-                  {formatMinutesAsHours(preview.nightOvertimeMinutes)} falls into the 10 PM to 4 AM night period.
+                <div className="mt-2 flex items-center gap-2 rounded-lg bg-primary-50 px-3 py-2 text-2xs font-medium text-primary-700">
+                  <MoonStar className="h-3.5 w-3.5" />
+                  {formatMinutesAsHours(preview.nightOvertimeMinutes)} in the night window (10 PM–4 AM)
                 </div>
               ) : null}
               {preview.wellbeingWarning ? (
-                <div className="flex items-start gap-3 rounded-[1.2rem] border border-amber-200 bg-amber-50/80 px-4 py-3 text-sm text-amber-700">
-                  <MoonStar className="mt-0.5 h-4 w-4 shrink-0" />
-                  <p>{preview.wellbeingWarning}</p>
-                </div>
+                <p className="mt-2 rounded-lg bg-accent-50 px-3 py-2 text-2xs leading-4 text-accent-foreground">{preview.wellbeingWarning}</p>
               ) : null}
             </div>
 
             {message ? <InlineMessage tone={message.tone}>{message.text}</InlineMessage> : null}
 
             <StickyActionBar>
-              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-                <p className="text-sm text-text-secondary">Save once the preview looks right.</p>
-                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-end">
-                  <Button type="submit" size="lg" disabled={isPending}>
-                    {isPending ? "Saving shift" : "Save shift"}
-                  </Button>
-                  <Button type="button" variant="secondary" size="lg" onClick={() => setOpen(false)}>
-                    Cancel
-                  </Button>
-                </div>
+              <div className="flex gap-2">
+                <Button type="button" variant="secondary" className="flex-1" onClick={() => setOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" className="flex-[2]" disabled={isPending || Boolean(preview.error)}>
+                  {isPending ? "Saving..." : "Save shift"}
+                </Button>
               </div>
             </StickyActionBar>
           </form>

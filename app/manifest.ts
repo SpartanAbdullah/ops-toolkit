@@ -12,9 +12,9 @@ export default function manifest(): MetadataRoute.Manifest {
     scope: "/",
     display: "standalone",
     orientation: "portrait",
-    background_color: "#F8FAFC",
-    theme_color: "#2563EB",
-    categories: ["business", "productivity", "finance", "utilities"],
+    background_color: "#F7F8FB",
+    theme_color: "#0E1D34",
+    categories: ["business", "productivity", "finance"],
     prefer_related_applications: false,
     icons: [
       {
@@ -41,12 +41,6 @@ export default function manifest(): MetadataRoute.Manifest {
         short_name: "Cash",
         description: "Open the petty cash ledger and add transactions.",
         url: "/app/petty-cash",
-      },
-      {
-        name: "Reports",
-        short_name: "Reports",
-        description: "Review export-ready overtime and cash summaries.",
-        url: "/app/reports",
       },
     ],
   };

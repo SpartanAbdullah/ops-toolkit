@@ -1,46 +1,29 @@
-import Link from "next/link";
-
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { SectionHeader } from "@/components/ui/section-header";
 import { cn } from "@/lib/utils";
-
-type PageHeaderAction = {
-  href: string;
-  label: string;
-  variant?: "default" | "secondary" | "outline" | "ghost";
-};
 
 type AppPageHeaderProps = {
   eyebrow?: string;
   title: React.ReactNode;
-  description: string;
+  description?: string;
   badge?: string;
   actions?: React.ReactNode;
-  links?: PageHeaderAction[];
   className?: string;
 };
 
-export function AppPageHeader({ eyebrow, title, description, badge, actions, links = [], className }: AppPageHeaderProps) {
+export function AppPageHeader({ eyebrow, title, description, badge, actions, className }: AppPageHeaderProps) {
   return (
-    <div className={cn("rounded-[28px] border border-border bg-white px-5 py-6 shadow-card sm:px-6 sm:py-7", className)}>
-      <SectionHeader
-        eyebrow={eyebrow}
-        badge={badge}
-        title={<span className="text-balance text-2xl font-semibold tracking-tight text-text-primary sm:text-[1.9rem]">{title}</span>}
-        description={description}
-        actions={
-          actions ?? (links.length ? (
-            <>
-              {links.map((link, index) => (
-                <Button key={link.href} asChild variant={link.variant ?? (index === 0 ? "default" : "secondary")}>
-                  <Link href={link.href}>{link.label}</Link>
-                </Button>
-              ))}
-            </>
-          ) : undefined)
-        }
-      />
+    <div className={cn("flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between", className)}>
+      <div className="space-y-1.5">
+        <div className="flex flex-wrap items-center gap-2">
+          {eyebrow ? <p className="section-label">{eyebrow}</p> : null}
+          {badge ? <Badge variant="navy">{badge}</Badge> : null}
+        </div>
+        <h1 className="font-display text-[26px] font-semibold leading-tight tracking-tight text-text-primary sm:text-[32px]">
+          {title}
+        </h1>
+        {description ? <p className="max-w-2xl text-sm leading-6 text-text-secondary">{description}</p> : null}
+      </div>
+      {actions ? <div className="flex flex-wrap items-center gap-2 sm:justify-end">{actions}</div> : null}
     </div>
   );
 }

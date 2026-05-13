@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { TeamMemberRole } from "@prisma/client";
-import { Bell, CircleDollarSign, ClipboardCheck, Clock3, HandCoins, Settings2, Users2, Wallet } from "lucide-react";
+import { Bell, ClipboardCheck, Clock3, HandCoins, Settings2, Users, Wallet } from "lucide-react";
 
 import { AppPageHeader } from "@/components/app/app-page-header";
 import { OvertimeCompensationSheet } from "@/components/app/overtime-compensation-sheet";
@@ -13,8 +13,8 @@ import { OvertimeSettingsForm } from "@/components/app/overtime-settings-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { IconTile } from "@/components/ui/icon-tile";
+import { Card, CardContent } from "@/components/ui/card";
+import { StatCard } from "@/components/ui/stat-card";
 import { getRoleBadgeVariant, getRoleLabel } from "@/lib/app/team";
 import { getAppContext } from "@/lib/app/session";
 import { buildMetadata } from "@/lib/site";
@@ -35,10 +35,7 @@ import { cn, formatCurrency } from "@/lib/utils";
 import type { OvertimeSettingsValues } from "@/lib/validation/overtime";
 
 export const metadata = buildMetadata({
-  title: "Overtime Management",
-  description: "Track shifts, approvals, payment status, and team overtime rules inside the authenticated Ops Toolkit workspace.",
-  path: "/app/overtime",
-  noIndex: true,
+  title: "Overtime",
 });
 
 export const dynamic = "force-dynamic";
@@ -69,16 +66,21 @@ export default async function OvertimePage({
   const resolvedSearchParams = (await searchParams) ?? {};
   const activeTeamId = context.activeTeam?.id ?? null;
   const isAdmin = context.activeMembership?.role === TeamMemberRole.admin;
-  const scope = activeTeamId ? "team" : "individual";
+  const scope: "individual" | "team" = activeTeamId ? "team" : "individual";
 
-  const requestedTab = getQueryValue(resolvedSearchParams.tab) ?? "overview";
+  const requestedTab = getQueryValue(resolvedSearchParams.tab) ?? "entries";
   const tabs = [
-    { value: "overview", label: "Overview" },
     { value: "entries", label: "Entries" },
-    ...(activeTeamId && isAdmin ? [{ value: "approvals", label: "Approvals" }, { value: "settings", label: "Settings" }, { value: "members", label: "Members" }, { value: "payments", label: "Payments" }] : []),
-    ...(!activeTeamId ? [{ value: "settings", label: "Settings" }] : []),
+    ...(activeTeamId && isAdmin
+      ? [
+          { value: "approvals", label: "Approvals" },
+          { value: "members", label: "Members" },
+          { value: "payments", label: "Payments" },
+        ]
+      : []),
+    { value: "settings", label: "Settings" },
   ];
-  const activeTab = tabs.some((tab) => tab.value === requestedTab) ? requestedTab : tabs[0]?.value ?? "overview";
+  const activeTab = tabs.some((tab) => tab.value === requestedTab) ? requestedTab : tabs[0]?.value ?? "entries";
 
   const filters = normalizeOvertimeFilters({
     range: getQueryValue(resolvedSearchParams.range) as Parameters<typeof normalizeOvertimeFilters>[0]["range"],
@@ -88,7 +90,7 @@ export default async function OvertimePage({
     workerId: getQueryValue(resolvedSearchParams.workerId),
   });
 
-  const [settingsRecord, holidayRecords, memberRecords, workerProfiles, paymentRecords, notifications, entryRecords] = await Promise.all([
+  const [settingsRecord, holidayRecords, memberRecords, workerProfiles, paymentRecords, entryRecords] = await Promise.all([
     activeTeamId
       ? prisma.overtimeSettings.findUnique({ where: { teamId: activeTeamId } })
       : prisma.overtimeSettings.findUnique({ where: { ownerUserId: context.user.id } }),
@@ -102,18 +104,20 @@ export default async function OvertimePage({
       : Promise.resolve([]),
     activeTeamId ? prisma.overtimeWorkerProfile.findMany({ where: { teamId: activeTeamId } }) : Promise.resolve([]),
     activeTeamId
-      ? prisma.overtimePaymentRecord.findMany({ where: isAdmin ? { teamId: activeTeamId } : { teamId: activeTeamId, workerUserId: context.user.id }, orderBy: { paidUntilDate: "desc" } })
+      ? prisma.overtimePaymentRecord.findMany({
+          where: isAdmin ? { teamId: activeTeamId } : { teamId: activeTeamId, workerUserId: context.user.id },
+          orderBy: { paidUntilDate: "desc" },
+        })
       : Promise.resolve([]),
-    prisma.notification.findMany({ where: { userId: context.user.id }, orderBy: { createdAt: "desc" }, take: 8 }),
     prisma.overtimeEntry.findMany({
-      where: activeTeamId ? (isAdmin ? { teamId: activeTeamId } : { teamId: activeTeamId, workerUserId: context.user.id }) : { teamId: null, workerUserId: context.user.id },
+      where: activeTeamId
+        ? isAdmin
+          ? { teamId: activeTeamId }
+          : { teamId: activeTeamId, workerUserId: context.user.id }
+        : { teamId: null, workerUserId: context.user.id },
       include: {
         worker: { include: { profile: true } },
-        approvals: {
-          orderBy: { createdAt: "desc" },
-          take: 1,
-          include: { approver: { include: { profile: true } } },
-        },
+        approvals: { orderBy: { createdAt: "desc" }, take: 1, include: { approver: { include: { profile: true } } } },
       },
       orderBy: [{ workedDate: "desc" }, { createdAt: "desc" }],
     }),
@@ -133,7 +137,9 @@ export default async function OvertimePage({
       }
     : getDefaultOvertimeSettingsSnapshot(scope);
 
-  const workerSalaryMap = new Map(workerProfiles.map((profile) => [profile.workerUserId, profile.basicMonthlySalary ? Number(profile.basicMonthlySalary) : null]));
+  const workerSalaryMap = new Map(
+    workerProfiles.map((profile) => [profile.workerUserId, profile.basicMonthlySalary ? Number(profile.basicMonthlySalary) : null]),
+  );
   const currentUserSalary = activeTeamId ? workerSalaryMap.get(context.user.id) ?? null : settingsSnapshot.individualBasicMonthlySalary;
   const latestPaymentMap = getLatestPaymentMap(paymentRecords);
 
@@ -181,19 +187,15 @@ export default async function OvertimePage({
   const summary = calculateOvertimeSummary(rows);
   const workerBreakdown = buildWorkerBreakdown(thisMonthRows);
   const allWorkerBreakdown = new Map(buildWorkerBreakdown(rows).map((item) => [item.workerUserId, item]));
-  const overtimeNotifications = notifications.filter((notification) => {
-    const data = notification.data as { module?: string } | null;
-    return data?.module === "overtime" || notification.title.toLowerCase().includes("overtime");
-  });
   const hasSettings = Boolean(settingsRecord);
-  const canCurrentUserCalculate = hasSettings && (settingsSnapshot.calculationMode === "simple" ? settingsSnapshot.simpleHourlyRate != null : currentUserSalary != null);
-  const filtersActive = Boolean(filters.range !== "this_month" || filters.status !== "all" || filters.workerId !== "all");
+  const canCurrentUserCalculate =
+    hasSettings && (settingsSnapshot.calculationMode === "simple" ? settingsSnapshot.simpleHourlyRate != null : currentUserSalary != null);
+  const filtersActive = Boolean(
+    filters.range !== "this_month" || filters.status !== "all" || filters.workerId !== "all",
+  );
   const visibleRowsForExport = activeTab === "approvals" ? pendingRows : filteredRows;
   const roleLabel = getRoleLabel(context.resolvedRole);
-  const roleVariant = getRoleBadgeVariant(context.resolvedRole);
-  const currentUserLastPaidDate = latestPaymentMap[context.user.id] ?? null;
-  const currentUserApprovedRows = rows.filter((row) => row.status === "approved" || row.status === "auto_approved");
-  const currentUserPaymentText = !activeTeamId ? "Payment tracking starts when you use the team workflow." : currentUserLastPaidDate ? `Paid through ${formatOvertimeDate(currentUserLastPaidDate)}` : currentUserApprovedRows.length ? "No payment record yet" : "No approved overtime yet";
+
   const memberRows = memberRecords.map((member) => {
     const breakdown = allWorkerBreakdown.get(member.userId);
     return {
@@ -208,44 +210,112 @@ export default async function OvertimePage({
       pendingCount: breakdown?.pendingCount ?? 0,
     };
   });
-  const missingSalaryMembers = settingsSnapshot.calculationMode === "mohre_compliant" ? memberRows.filter((member) => member.salary == null) : [];
+  const missingSalaryMembers =
+    settingsSnapshot.calculationMode === "mohre_compliant" ? memberRows.filter((member) => member.salary == null) : [];
+
   return (
-    <div className="space-y-6 pb-10">
+    <div className="space-y-5 animate-fade-up">
       <AppPageHeader
         eyebrow="Overtime"
-        badge={activeTeamId ? `${roleLabel} workspace` : "Individual workspace"}
-        title="Overtime management built for real UAE operations"
-        description={activeTeamId ? (isAdmin ? "Run shift capture, approvals, payment visibility, and team overtime settings from one clear workspace instead of juggling spreadsheets and WhatsApp messages." : "Log shifts quickly, see approval status, and understand exactly how your overtime hours and AED totals are being tracked.") : "Track your own overtime in a clean private workspace with saved history, calculation settings, and auto-approved entries."}
+        badge={activeTeamId ? `${roleLabel}` : "Personal"}
+        title="Overtime"
+        description={
+          activeTeamId
+            ? isAdmin
+              ? "Capture shifts, approve, and track payments for the team."
+              : "Log your shifts and see approval and payment status."
+            : "Track your own overtime with calculation history."
+        }
         actions={
-          <div className="flex flex-wrap gap-3">
-            {hasSettings && canCurrentUserCalculate ? (
-              <OvertimeEntrySheet
-                buttonLabel="Log shift"
-                settings={settingsSnapshot}
-                holidayDates={holidayRecords.map((holiday) => holiday.date.toISOString().slice(0, 10))}
-                workerSalary={currentUserSalary}
-                approvalLabel={activeTeamId && !isAdmin ? "Saved as pending for admin review" : "Saved and auto-approved in your workspace"}
-              />
-            ) : null}
-            {(activeTab === "entries" || activeTab === "approvals") ? <OvertimeExportButton rows={visibleRowsForExport} /> : null}
-            {!hasSettings ? (
-              <Button asChild variant="secondary">
-                <Link href="/app/overtime?tab=settings">Set up overtime</Link>
-              </Button>
-            ) : null}
-          </div>
+          hasSettings && canCurrentUserCalculate ? (
+            <OvertimeEntrySheet
+              buttonLabel="Log shift"
+              buttonIcon
+              settings={settingsSnapshot}
+              holidayDates={holidayRecords.map((holiday) => holiday.date.toISOString().slice(0, 10))}
+              workerSalary={currentUserSalary}
+              approvalLabel={activeTeamId && !isAdmin ? "Saves as pending for admin review." : "Saves and auto-approves in your workspace."}
+            />
+          ) : (
+            <Button asChild>
+              <Link href="/app/overtime?tab=settings">Set up overtime</Link>
+            </Button>
+          )
         }
       />
 
-      <div className="rounded-[1.7rem] border border-white/85 bg-white/88 p-3 shadow-card backdrop-blur">
-        <div className="flex flex-wrap gap-2">
+      {/* Headline stats */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatCard
+          label="This month OT"
+          value={formatCurrency(summary.approvedAmountThisMonth)}
+          description={`${formatMinutesAsHours(summary.approvedHoursThisMonth)} approved`}
+          icon={Clock3}
+          tone="amber"
+        />
+        <StatCard
+          label="Pending"
+          value={summary.pendingCount}
+          description={isAdmin ? "Waiting in approval queue" : "Awaiting review"}
+          icon={Bell}
+          tone="amber"
+        />
+        <StatCard
+          label={activeTeamId && isAdmin ? "Unpaid" : "Status"}
+          value={activeTeamId && isAdmin ? summary.unpaidApprovedCount : roleLabel}
+          description={activeTeamId && isAdmin ? "Approved without paid-through" : "Your access level"}
+          icon={HandCoins}
+          tone="navy"
+        />
+        <StatCard
+          label="Approved entries"
+          value={summary.approvedEntryCountThisMonth}
+          description="This month"
+          icon={ClipboardCheck}
+          tone="mint"
+        />
+      </div>
+
+      {!hasSettings ? (
+        <Callout
+          title="Set up overtime first"
+          description="Save the policy settings before logging any shifts."
+          icon={Settings2}
+          tone="amber"
+        >
+          <Button asChild variant="accent" size="sm">
+            <Link href="/app/overtime?tab=settings">Open settings</Link>
+          </Button>
+        </Callout>
+      ) : null}
+
+      {hasSettings && settingsSnapshot.calculationMode === "mohre_compliant" && currentUserSalary == null ? (
+        <Callout
+          title={activeTeamId ? (isAdmin ? "Add your salary profile" : "Salary needed for compliant mode") : "Add your basic salary"}
+          description={
+            activeTeamId
+              ? isAdmin
+                ? "Set your own worker compensation in Members."
+                : "Ask an admin to add your basic monthly salary."
+              : "Compliant mode needs your basic monthly salary."
+          }
+          icon={Wallet}
+          tone="amber"
+        />
+      ) : null}
+
+      {/* Tab switcher */}
+      <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+        <div className="inline-flex gap-1 rounded-2xl border border-border bg-white p-1 shadow-card">
           {tabs.map((tab) => (
             <Link
               key={tab.value}
               href={`/app/overtime?tab=${tab.value}`}
               className={cn(
-                "rounded-[1.1rem] px-4 py-2.5 text-sm font-semibold transition",
-                activeTab === tab.value ? "bg-slate-950 text-white shadow-sm" : "text-slate-600 hover:bg-slate-100 hover:text-slate-950",
+                "tap-highlight rounded-xl px-3.5 py-2 text-sm font-semibold transition",
+                activeTab === tab.value
+                  ? "bg-primary-600 text-white shadow-sm"
+                  : "text-text-secondary hover:bg-surface-muted hover:text-text-primary",
               )}
             >
               {tab.label}
@@ -254,268 +324,196 @@ export default async function OvertimePage({
         </div>
       </div>
 
-      {!hasSettings ? (
-        <Callout title="Overtime settings still need to be saved" description="The module can only calculate and store shifts once the overtime policy settings are saved. Use the Settings tab to finish the initial setup." icon={Settings2} tone="amber" />
-      ) : null}
-
-      {hasSettings && settingsSnapshot.calculationMode === "mohre_compliant" && currentUserSalary == null ? (
-        <Callout
-          title={activeTeamId ? (isAdmin ? "Your salary profile still needs to be added" : "Your admin needs to add your salary profile") : "Your basic salary is required for compliant mode"}
-          description={activeTeamId ? (isAdmin ? "Set your own worker compensation profile in Members before logging compliant overtime for yourself." : "MOHRE-compliant calculations use the worker basic salary. Ask an admin to add yours in the Members tab.") : "Add your basic monthly salary in Settings so the compliant overtime calculation can produce AED totals."}
-          icon={Wallet}
-          tone="amber"
-        />
-      ) : null}
-
-      {activeTab === "overview" ? (
+      {/* Tab content */}
+      {activeTab === "entries" ? (
         <>
-          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-            <Card>
-              <CardHeader className="pb-4">
-                <div className="flex items-center justify-between gap-3">
-                  <CardTitle className="text-base">Pending Entries</CardTitle>
-                  <IconTile icon={ClipboardCheck} tone="amber" size="sm" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-semibold tracking-tight text-slate-950">{summary.pendingCount}</p>
-                <p className="mt-3 text-sm leading-7 text-slate-600">{activeTeamId && isAdmin ? "Entries waiting in the team approval queue." : "Your saved shifts that still need approval."}</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-4">
-                <div className="flex items-center justify-between gap-3">
-                  <CardTitle className="text-base">This Month OT Hours</CardTitle>
-                  <IconTile icon={Clock3} tone="blue" size="sm" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-semibold tracking-tight text-slate-950">{formatMinutesAsHours(summary.approvedHoursThisMonth)}</p>
-                <p className="mt-3 text-sm leading-7 text-slate-600">Approved overtime hours recorded during the current month.</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-4">
-                <div className="flex items-center justify-between gap-3">
-                  <CardTitle className="text-base">This Month OT AED</CardTitle>
-                  <IconTile icon={CircleDollarSign} tone="green" size="sm" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-semibold tracking-tight text-slate-950">{formatCurrency(summary.approvedAmountThisMonth)}</p>
-                <p className="mt-3 text-sm leading-7 text-slate-600">Approved overtime value captured for the current month.</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-4">
-                <div className="flex items-center justify-between gap-3">
-                  <CardTitle className="text-base">{activeTeamId && isAdmin ? "Awaiting Payment" : "Payment Status"}</CardTitle>
-                  <IconTile icon={activeTeamId && isAdmin ? HandCoins : Wallet} tone={activeTeamId && isAdmin ? "purple" : "blue"} size="sm" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-semibold tracking-tight text-slate-950">{activeTeamId && isAdmin ? summary.unpaidApprovedCount : currentUserPaymentText}</p>
-                <p className="mt-3 text-sm leading-7 text-slate-600">{activeTeamId && isAdmin ? "Approved entries without a recorded paid-through date yet." : "Workers can always see the latest payment checkpoint for their own approved overtime."}</p>
-              </CardContent>
-            </Card>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-text-secondary">
+              <span className="font-semibold text-text-primary">{filteredRows.length}</span> entries shown
+            </p>
+            <OvertimeExportButton rows={visibleRowsForExport} />
           </div>
-
-          {activeTeamId && isAdmin && pendingRows.length ? (
-            <Callout title="The approval queue needs attention" description={`${pendingRows.length} shift ${pendingRows.length === 1 ? "is" : "are"} waiting for review right now.`} icon={ClipboardCheck} tone="blue">
-              <div className="flex flex-wrap gap-3">
-                <Button asChild>
-                  <Link href="/app/overtime?tab=approvals">Open approval queue</Link>
-                </Button>
-              </div>
-            </Callout>
-          ) : null}
-
-          {activeTeamId && isAdmin && missingSalaryMembers.length ? (
-            <Callout title="Some team members still need salary profiles" description={`${missingSalaryMembers.length} member ${missingSalaryMembers.length === 1 ? "is" : "are"} missing the basic salary needed for MOHRE-compliant calculations.`} icon={Users2} tone="amber">
-              <div className="flex flex-wrap gap-3">
-                <Button asChild variant="secondary">
-                  <Link href="/app/overtime?tab=members">Open members</Link>
-                </Button>
-              </div>
-            </Callout>
-          ) : null}
-
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-2xl">{activeTeamId && isAdmin ? "Per-worker breakdown" : "Recent overtime entries"}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {activeTeamId && isAdmin ? (
-                  workerBreakdown.length ? workerBreakdown.map((worker) => (
-                    <div key={worker.workerUserId} className="rounded-[1.4rem] border border-slate-200/80 bg-slate-50/80 px-4 py-4">
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                          <p className="font-semibold text-slate-950">{worker.workerName}</p>
-                          <p className="mt-1 text-sm text-slate-500">{formatMinutesAsHours(worker.overtimeMinutes)} approved this month</p>
-                        </div>
-                        <div className="rounded-[1.2rem] border border-white/90 bg-white px-4 py-3 shadow-sm">
-                          <p className="text-sm font-semibold text-slate-900">{formatCurrency(worker.amount)}</p>
-                          <p className="mt-1 text-xs uppercase tracking-[0.18em] text-slate-400">{worker.pendingCount} pending</p>
-                        </div>
-                      </div>
-                    </div>
-                  )) : <div className="rounded-[1.5rem] border border-dashed border-slate-300 bg-slate-50/70 px-5 py-6 text-sm leading-7 text-slate-600">No approved overtime has been recorded this month yet.</div>
-                ) : (
-                  rows.slice(0, 5).length ? rows.slice(0, 5).map((row) => (
-                    <div key={row.id} className="rounded-[1.4rem] border border-slate-200/80 bg-slate-50/80 px-4 py-4">
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                          <p className="font-semibold text-slate-950">{formatOvertimeDate(row.workedOn)}</p>
-                          <p className="mt-1 text-sm text-slate-500">{row.totalWorkedLabel} worked, {row.overtimeLabel} OT</p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <Badge variant={row.statusVariant}>{row.statusLabel}</Badge>
-                          <p className="text-sm font-semibold text-slate-900">{row.amountLabel}</p>
-                        </div>
-                      </div>
-                    </div>
-                  )) : <div className="rounded-[1.5rem] border border-dashed border-slate-300 bg-slate-50/70 px-5 py-6 text-sm leading-7 text-slate-600">No overtime entries have been saved yet.</div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-2xl">Recent notifications</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {overtimeNotifications.length ? overtimeNotifications.map((notification) => (
-                  <div key={notification.id} className="rounded-[1.4rem] border border-slate-200/80 bg-slate-50/80 px-4 py-4">
-                    <div className="flex items-start gap-3">
-                      <IconTile icon={Bell} tone={notification.type === "warning" ? "amber" : notification.type === "success" ? "green" : "blue"} size="sm" />
-                      <div>
-                        <p className="font-semibold text-slate-950">{notification.title}</p>
-                        <p className="mt-1 text-sm leading-6 text-slate-600">{notification.body}</p>
-                        <p className="mt-2 text-xs uppercase tracking-[0.18em] text-slate-400">{notification.createdAt.toLocaleString("en-AE", { dateStyle: "medium", timeStyle: "short" })}</p>
-                      </div>
-                    </div>
-                  </div>
-                )) : <div className="rounded-[1.5rem] border border-dashed border-slate-300 bg-slate-50/70 px-5 py-6 text-sm leading-7 text-slate-600">Overtime approvals, rejections, and payment updates will appear here.</div>}
-              </CardContent>
-            </Card>
-          </div>
+          <OvertimeFilterBar
+            filters={filters}
+            workers={isAdmin ? memberRows.map((member) => ({ id: member.id, name: member.name })) : []}
+            tab="entries"
+          />
+          <OvertimeEntryList
+            rows={filteredRows}
+            hasAnyRows={rows.length > 0}
+            filtersActive={filtersActive}
+            showWorkerName={Boolean(activeTeamId && isAdmin)}
+            showAdminActions={false}
+            emptyTitle="No entries match these filters"
+            emptyDescription="Adjust the filters to see more results."
+            resetHref="/app/overtime?tab=entries"
+          />
         </>
       ) : null}
 
-      {activeTab === "entries" ? (
-        <div className="space-y-6">
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
-            <OvertimeFilterBar filters={filters} workers={isAdmin ? memberRows.map((member) => ({ id: member.id, name: member.name })) : []} tab="entries" />
-            <Card>
-              <CardHeader className="border-b border-slate-100 pb-5">
-                <CardTitle className="text-2xl">Visible totals</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4 pt-6">
-                <div className="rounded-[1.3rem] border border-slate-200/80 bg-slate-50/80 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Approved OT hours</p>
-                  <p className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">{formatMinutesAsHours(filteredRows.filter((row) => row.status === "approved" || row.status === "auto_approved").reduce((total, row) => total + row.overtimeMinutes, 0))}</p>
-                </div>
-                <div className="rounded-[1.3rem] border border-slate-200/80 bg-slate-50/80 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Approved OT AED</p>
-                  <p className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">{formatCurrency(filteredRows.filter((row) => row.status === "approved" || row.status === "auto_approved").reduce((total, row) => total + row.amount, 0))}</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <OvertimeEntryList rows={filteredRows} hasAnyRows={rows.length > 0} filtersActive={filtersActive} showWorkerName={Boolean(activeTeamId && isAdmin)} showAdminActions={false} emptyTitle="No entries match these filters" emptyDescription="Adjust the filter range or reset the filters to bring back the full entry history." resetHref="/app/overtime?tab=entries" />
-        </div>
-      ) : null}
       {activeTab === "approvals" && activeTeamId && isAdmin ? (
-        <div className="space-y-6">
-          {!pendingRows.length ? <Callout title="The approval queue is clear" description="No pending entries are waiting for review right now. New worker submissions will appear here automatically." icon={ClipboardCheck} tone="green" /> : null}
-          <OvertimeEntryList rows={pendingRows} hasAnyRows={rows.length > 0} filtersActive={false} showWorkerName showAdminActions emptyTitle="No pending approvals right now" emptyDescription="New worker submissions will appear here when they are waiting for review." />
-        </div>
+        <>
+          {pendingRows.length ? (
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm text-text-secondary">
+                <span className="font-semibold text-text-primary">{pendingRows.length}</span> awaiting review
+              </p>
+              <OvertimeExportButton rows={pendingRows} />
+            </div>
+          ) : (
+            <Callout
+              title="Queue is clear"
+              description="No pending entries right now. New submissions will appear here."
+              icon={ClipboardCheck}
+              tone="mint"
+            />
+          )}
+          <OvertimeEntryList
+            rows={pendingRows}
+            hasAnyRows={rows.length > 0}
+            filtersActive={false}
+            showWorkerName
+            showAdminActions
+            emptyTitle="No pending approvals"
+            emptyDescription="Submissions will appear here when waiting for review."
+          />
+        </>
       ) : null}
 
       {activeTab === "settings" ? (
         <OvertimeSettingsForm
           scope={scope}
           initialValues={buildSettingsFormValues(settingsSnapshot)}
-          holidays={holidayRecords.map((holiday) => ({ id: holiday.id, date: holiday.date.toISOString().slice(0, 10), label: holiday.label }))}
+          holidays={holidayRecords.map((holiday) => ({
+            id: holiday.id,
+            date: holiday.date.toISOString().slice(0, 10),
+            label: holiday.label,
+          }))}
           canManageHolidays={Boolean(activeTeamId && isAdmin)}
         />
       ) : null}
 
       {activeTab === "members" && activeTeamId && isAdmin ? (
-        <div className="space-y-6">
-          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+        <div className="space-y-4">
+          {missingSalaryMembers.length ? (
+            <Callout
+              title="Missing salary profiles"
+              description={`${missingSalaryMembers.length} member${missingSalaryMembers.length === 1 ? "" : "s"} need a salary for compliant mode.`}
+              icon={Users}
+              tone="amber"
+            />
+          ) : null}
+          <div className="grid gap-3 md:grid-cols-2">
             {memberRows.map((member) => (
               <Card key={member.id}>
-                <CardHeader className="pb-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <CardTitle className="text-xl">{member.name}</CardTitle>
-                      <p className="mt-2 text-sm text-slate-500">{member.email}</p>
+                <CardContent className="space-y-3 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-display text-base font-semibold text-text-primary">{member.name}</p>
+                      <p className="mt-0.5 truncate text-2xs text-text-muted">{member.email}</p>
                     </div>
                     <Badge variant={getRoleBadgeVariant(member.role)}>{getRoleLabel(member.role)}</Badge>
                   </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="rounded-[1.3rem] border border-slate-200/80 bg-slate-50/80 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Basic salary</p>
-                    <p className="mt-2 text-lg font-semibold text-slate-950">{member.salary ? formatCurrency(member.salary) : "Not set"}</p>
-                  </div>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="rounded-[1.3rem] border border-slate-200/80 bg-slate-50/80 p-4">
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Approved OT</p>
-                      <p className="mt-2 text-sm font-semibold text-slate-900">{formatMinutesAsHours(member.approvedHours)}</p>
-                      <p className="mt-1 text-xs text-slate-500">{formatCurrency(member.approvedAmount)}</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="rounded-lg bg-surface-muted px-3 py-2">
+                      <p className="text-2xs uppercase tracking-wide text-text-muted">Salary</p>
+                      <p className="mt-0.5 font-display text-sm font-semibold text-text-primary">
+                        {member.salary ? formatCurrency(member.salary) : "Not set"}
+                      </p>
                     </div>
-                    <div className="rounded-[1.3rem] border border-slate-200/80 bg-slate-50/80 p-4">
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Payment</p>
-                      <p className="mt-2 text-sm font-semibold text-slate-900">{member.lastPaidDate ? formatOvertimeDate(member.lastPaidDate) : "Not recorded"}</p>
-                      <p className="mt-1 text-xs text-slate-500">{member.pendingCount} pending</p>
+                    <div className="rounded-lg bg-surface-muted px-3 py-2">
+                      <p className="text-2xs uppercase tracking-wide text-text-muted">Approved OT</p>
+                      <p className="mt-0.5 font-display text-sm font-semibold text-text-primary">
+                        {formatMinutesAsHours(member.approvedHours)}
+                      </p>
+                      <p className="text-2xs text-text-muted">{formatCurrency(member.approvedAmount)}</p>
                     </div>
                   </div>
-                  <OvertimeCompensationSheet workerUserId={member.id} workerName={member.name} currentSalary={member.salary} buttonLabel="Set salary" />
+                  <div className="flex items-center justify-between text-2xs text-text-muted">
+                    <span>{member.lastPaidDate ? `Paid through ${formatOvertimeDate(member.lastPaidDate)}` : "No payment recorded"}</span>
+                    <span>{member.pendingCount} pending</span>
+                  </div>
+                  <OvertimeCompensationSheet
+                    workerUserId={member.id}
+                    workerName={member.name}
+                    currentSalary={member.salary}
+                    buttonLabel="Set salary"
+                    buttonVariant="secondary"
+                    buttonSize="sm"
+                  />
                 </CardContent>
               </Card>
             ))}
           </div>
+          {!memberRows.length ? (
+            <Callout
+              title="No team members yet"
+              description="Share your join code from the Team page to add members."
+              icon={Users}
+              tone="navy"
+            />
+          ) : null}
         </div>
       ) : null}
 
       {activeTab === "payments" && activeTeamId && isAdmin ? (
-        <div className="space-y-6">
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)]">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-2xl">Payment updates</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-5">
-                <p className="text-sm leading-6 text-slate-600">Mark a worker paid through a specific date so approved overtime entries up to that checkpoint clearly show as paid in both admin and worker views.</p>
-                <OvertimePaymentSheet workers={memberRows.map((member) => ({ id: member.id, name: member.name }))} buttonLabel="Mark paid through date" />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-2xl">Worker payment status</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {memberRows.map((member) => (
-                  <div key={member.id} className="rounded-[1.4rem] border border-slate-200/80 bg-slate-50/80 px-4 py-4">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <p className="font-semibold text-slate-950">{member.name}</p>
-                        <p className="mt-1 text-sm text-slate-500">{member.lastPaidDate ? `Paid through ${formatOvertimeDate(member.lastPaidDate)}` : "No paid-through date recorded yet"}</p>
-                      </div>
-                      <div className="rounded-[1.2rem] border border-white/90 bg-white px-4 py-3 shadow-sm">
-                        <p className="text-sm font-semibold text-slate-900">{formatCurrency(member.approvedAmount)}</p>
-                        <p className="mt-1 text-xs uppercase tracking-[0.18em] text-slate-400">{member.pendingCount} pending</p>
-                      </div>
-                    </div>
+        <div className="space-y-4">
+          <Card>
+            <CardContent className="space-y-3 p-4 sm:p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-display text-base font-semibold text-text-primary">Mark overtime paid</p>
+                  <p className="mt-1 text-sm leading-5 text-text-secondary">
+                    Record the paid-through date so workers see when their OT is paid.
+                  </p>
+                </div>
+              </div>
+              <OvertimePaymentSheet
+                workers={memberRows.map((member) => ({ id: member.id, name: member.name }))}
+                buttonLabel="Mark paid"
+                buttonVariant="default"
+              />
+            </CardContent>
+          </Card>
+
+          <div className="space-y-2">
+            <p className="section-label px-1">Worker payment status</p>
+            {memberRows.map((member) => (
+              <div key={member.id} className="rounded-2xl border border-border bg-white p-4 shadow-card">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-display text-sm font-semibold text-text-primary">{member.name}</p>
+                    <p className="mt-0.5 text-2xs text-text-muted">
+                      {member.lastPaidDate ? `Paid through ${formatOvertimeDate(member.lastPaidDate)}` : "Not recorded"}
+                    </p>
                   </div>
-                ))}
-              </CardContent>
-            </Card>
+                  <div className="text-right">
+                    <p className="font-display text-sm font-semibold tabular-nums text-text-primary">
+                      {formatCurrency(member.approvedAmount)}
+                    </p>
+                    <p className="text-2xs text-text-muted">{member.pendingCount} pending</p>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
+
+          {workerBreakdown.length ? (
+            <div className="space-y-2">
+              <p className="section-label px-1">Per-worker this month</p>
+              {workerBreakdown.map((worker) => (
+                <div key={worker.workerUserId} className="rounded-2xl border border-border bg-white p-4 shadow-card">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="font-display text-sm font-semibold text-text-primary">{worker.workerName}</p>
+                      <p className="mt-0.5 text-2xs text-text-muted">{formatMinutesAsHours(worker.overtimeMinutes)} approved</p>
+                    </div>
+                    <p className="font-display text-sm font-semibold tabular-nums text-text-primary">{formatCurrency(worker.amount)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>

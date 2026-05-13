@@ -1,33 +1,41 @@
 import Link from "next/link";
-import { ReceiptText } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, BanknoteArrowUp, CreditCard, HandCoins, MinusCircle, ReceiptText, Settings2 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 import { PettyCashLedgerActions } from "@/components/app/petty-cash-ledger-actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { ListRow } from "@/components/ui/list-row";
-import { SectionHeader } from "@/components/ui/section-header";
 import { formatPettyCashDate, type PettyCashLedgerRow } from "@/lib/petty-cash";
 
-function getStatusVariant(row: PettyCashLedgerRow) {
-  if (row.reimbursementStatus === "pending") {
-    return "amber" as const;
+function getRowIcon(row: PettyCashLedgerRow): LucideIcon {
+  switch (row.type) {
+    case "opening_balance":
+    case "cash_top_up":
+      return BanknoteArrowUp;
+    case "expense_cash":
+      return MinusCircle;
+    case "expense_card":
+      return CreditCard;
+    case "reimbursement_submitted":
+      return ReceiptText;
+    case "reimbursement_received":
+      return HandCoins;
+    default:
+      return Settings2;
   }
+}
 
-  if (row.reimbursementStatus === "received") {
-    return "green" as const;
-  }
+function getImpactColor(row: PettyCashLedgerRow) {
+  if (row.cashImpact > 0) return "text-mint-600";
+  if (row.cashImpact < 0) return "text-danger-600";
+  return "text-text-muted";
+}
 
-  if (row.cashImpact < 0) {
-    return "red" as const;
-  }
-
-  if (row.cashImpact > 0) {
-    return "blue" as const;
-  }
-
-  return "subtle" as const;
+function getIconBg(row: PettyCashLedgerRow) {
+  if (row.cashImpact > 0) return "bg-mint-50 text-mint-600";
+  if (row.cashImpact < 0) return "bg-danger-50 text-danger-600";
+  return "bg-surface-muted text-text-secondary";
 }
 
 export function PettyCashLedger({
@@ -41,67 +49,100 @@ export function PettyCashLedger({
   filtersActive: boolean;
   resetHref?: string;
 }) {
-  return (
-    <Card>
-      <CardContent className="space-y-5 p-5 sm:p-6">
-        <SectionHeader
-          eyebrow="Ledger"
-          title="Transaction history"
-          description="Each row shows what moved, when it moved, and how it affected cash on hand."
-          badge={`${rows.length} visible`}
-        />
+  if (!rows.length) {
+    return (
+      <EmptyState
+        icon={ReceiptText}
+        title={hasAnyRows ? "No transactions match these filters" : "No petty cash entries yet"}
+        description={
+          hasAnyRows && filtersActive
+            ? "Adjust the filters to see more results."
+            : "Tap the + button to set the opening balance and start tracking."
+        }
+        action={
+          hasAnyRows && filtersActive && resetHref ? (
+            <Button asChild variant="secondary" size="sm">
+              <Link href={resetHref}>Reset filters</Link>
+            </Button>
+          ) : undefined
+        }
+      />
+    );
+  }
 
-        {!rows.length ? (
-          <EmptyState
-            icon={ReceiptText}
-            title={hasAnyRows ? "No transactions match these filters" : "No petty cash entries yet"}
-            description={hasAnyRows && filtersActive ? "Adjust the filters to bring back the full ledger." : "Set the opening balance first, then keep the ledger current with top-ups, expenses, reimbursements, and adjustments."}
-            action={
-              hasAnyRows && filtersActive && resetHref ? (
-                <Button asChild variant="secondary">
-                  <Link href={resetHref}>Reset filters</Link>
-                </Button>
-              ) : undefined
-            }
-          />
-        ) : (
-          <div className="space-y-3">
-            {rows.map((row) => (
-              <ListRow
-                key={row.id}
-                title={row.typeLabel}
-                subtitle={`${formatPettyCashDate(row.occurredOn)} - ${row.category}`}
-                meta={row.paymentMethodLabel ?? "No separate payment method"}
-                badges={<Badge variant={getStatusVariant(row)}>{row.statusLabel}</Badge>}
-                aside={
-                  <div className="rounded-2xl bg-slate-50 px-4 py-3 text-left sm:text-right">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">Running balance</p>
-                    <p className="mt-1 text-sm font-semibold text-text-primary">{row.runningBalanceLabel}</p>
-                    <p className="mt-1 text-sm text-text-secondary">{row.cashImpactLabel}</p>
+  return (
+    <div className="space-y-2">
+      {rows.map((row) => {
+        const Icon = getRowIcon(row);
+        return (
+          <div key={row.id} className="rounded-2xl border border-border bg-white p-4 shadow-card">
+            <div className="flex items-start gap-3">
+              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${getIconBg(row)}`}>
+                <Icon className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-display text-[15px] font-semibold leading-tight text-text-primary">{row.typeLabel}</p>
+                    <p className="mt-0.5 truncate text-sm text-text-secondary">{row.category}</p>
                   </div>
-                }
-                details={
-                  <div className="space-y-2">
-                    <p><span className="font-semibold text-text-primary">Amount:</span> {row.amountLabel}</p>
-                    {row.vendorPayee ? <p><span className="font-semibold text-text-primary">Vendor / payee:</span> {row.vendorPayee}</p> : null}
-                    {row.referenceNumber ? <p><span className="font-semibold text-text-primary">Ref:</span> {row.referenceNumber}</p> : null}
-                    {row.receiptReference ? <p><span className="font-semibold text-text-primary">Receipt:</span> {row.receiptReference}</p> : null}
-                    {row.notes ? <p>{row.notes}</p> : null}
-                    {!row.vendorPayee && !row.referenceNumber && !row.receiptReference && !row.notes ? <p>No extra note.</p> : null}
+                  <div className="shrink-0 text-right">
+                    <p className={`font-display text-base font-semibold tabular-nums ${getImpactColor(row)}`}>
+                      {row.cashImpact >= 0 ? "+" : "−"}{row.amountLabel}
+                    </p>
+                    <p className="mt-0.5 text-2xs text-text-muted">Bal: {row.runningBalanceLabel}</p>
                   </div>
-                }
-                actions={
-                  <PettyCashLedgerActions
-                    referenceNumber={row.referenceNumber}
-                    receiptReference={row.receiptReference}
-                    notes={row.notes}
-                  />
-                }
-              />
-            ))}
+                </div>
+
+                <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-2xs text-text-muted">
+                  <span>{formatPettyCashDate(row.occurredOn)}</span>
+                  {row.vendorPayee ? (
+                    <>
+                      <span>·</span>
+                      <span className="truncate">{row.vendorPayee}</span>
+                    </>
+                  ) : null}
+                  {row.paymentMethodLabel ? (
+                    <>
+                      <span>·</span>
+                      <span>{row.paymentMethodLabel}</span>
+                    </>
+                  ) : null}
+                  {row.reimbursementStatus !== "not_applicable" ? (
+                    <Badge variant={row.reimbursementStatus === "received" ? "mint" : "amber"} className="ml-1">
+                      {row.reimbursementStatus === "received" ? "Reimbursed" : "Pending reimb."}
+                    </Badge>
+                  ) : null}
+                </div>
+
+                {row.notes ? (
+                  <p className="mt-2 rounded-lg bg-surface-muted px-3 py-2 text-sm leading-5 text-text-secondary">{row.notes}</p>
+                ) : null}
+
+                {(row.referenceNumber || row.receiptReference || row.notes) ? (
+                  <div className="mt-2">
+                    <PettyCashLedgerActions
+                      referenceNumber={row.referenceNumber}
+                      receiptReference={row.receiptReference}
+                      notes={row.notes}
+                    />
+                  </div>
+                ) : null}
+              </div>
+            </div>
+            {row.cashImpact !== 0 ? (
+              <div className="mt-2 flex items-center justify-end text-2xs text-text-muted">
+                {row.cashImpact > 0 ? (
+                  <ArrowUpRight className="mr-0.5 h-3 w-3 text-mint-600" />
+                ) : (
+                  <ArrowDownRight className="mr-0.5 h-3 w-3 text-danger-600" />
+                )}
+                {row.cashImpactLabel}
+              </div>
+            ) : null}
           </div>
-        )}
-      </CardContent>
-    </Card>
+        );
+      })}
+    </div>
   );
 }

@@ -2,11 +2,12 @@
 
 import { useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { BanknoteArrowDown, BanknoteArrowUp, ClipboardList, CreditCard, HandCoins, ReceiptText, Settings2 } from "lucide-react";
+import { BanknoteArrowDown, BanknoteArrowUp, ClipboardList, CreditCard, HandCoins, Plus, ReceiptText, Settings2 } from "lucide-react";
 import { useForm } from "react-hook-form";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { createPettyCashTransactionAction } from "@/app/app/petty-cash/actions";
+import { Badge } from "@/components/ui/badge";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { IconTile } from "@/components/ui/icon-tile";
@@ -16,6 +17,7 @@ import { Select } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { StickyActionBar } from "@/components/ui/sticky-action-bar";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 import {
   formatCashImpact,
   getCashImpact,
@@ -80,29 +82,38 @@ export function PettyCashTransactionSheet({
   buttonLabel,
   buttonVariant = "default",
   buttonSize = "default",
+  buttonClassName,
+  buttonIcon = false,
   categories,
   hasOpeningBalance,
 }: {
   buttonLabel: string;
   buttonVariant?: ButtonProps["variant"];
   buttonSize?: ButtonProps["size"];
+  buttonClassName?: string;
+  buttonIcon?: boolean;
   categories: string[];
   hasOpeningBalance: boolean;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const categoryListId = useId();
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const availableTypes = useMemo(
-    () => pettyCashTransactionTypes.filter((type) => hasOpeningBalance ? type.value !== "opening_balance" : type.value === "opening_balance"),
+    () =>
+      pettyCashTransactionTypes.filter((type) =>
+        hasOpeningBalance ? type.value !== "opening_balance" : type.value === "opening_balance",
+      ),
     [hasOpeningBalance],
   );
   const defaultType = availableTypes[0]?.value ?? "expense_cash";
   const suggestedCategoryRef = useRef<string>(getSuggestedCategory(defaultType));
   const categoryOptions = useMemo(
-    () => Array.from(new Set([...pettyCashDefaultCategories, ...categories])).sort((left, right) => left.localeCompare(right)),
+    () =>
+      Array.from(new Set([...pettyCashDefaultCategories, ...categories])).sort((left, right) => left.localeCompare(right)),
     [categories],
   );
 
@@ -130,10 +141,16 @@ export function PettyCashTransactionSheet({
     : 0;
 
   useEffect(() => {
-    if (!open) {
-      return;
+    if (searchParams.get("action") === "add") {
+      setOpen(true);
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("action");
+      router.replace(`/app/petty-cash${params.toString() ? `?${params.toString()}` : ""}`, { scroll: false });
     }
+  }, [searchParams, router]);
 
+  useEffect(() => {
+    if (!open) return;
     const defaults = buildDefaultValues(defaultType);
     suggestedCategoryRef.current = defaults.category;
     reset(defaults);
@@ -143,21 +160,18 @@ export function PettyCashTransactionSheet({
   useEffect(() => {
     const suggestedCategory = getSuggestedCategory(selectedType);
     const currentCategory = getValues("category");
-
     if (!currentCategory || currentCategory === suggestedCategoryRef.current) {
       setValue("category", suggestedCategory, { shouldValidate: true, shouldDirty: false });
     }
-
     const defaultPaymentMethod = getDefaultPaymentMethod(selectedType);
-    setValue("paymentMethod", typeNeedsSelectablePaymentMethod(selectedType) ? (getValues("paymentMethod") || defaultPaymentMethod || "") : (defaultPaymentMethod || ""), {
-      shouldValidate: true,
-      shouldDirty: false,
-    });
-
+    setValue(
+      "paymentMethod",
+      typeNeedsSelectablePaymentMethod(selectedType) ? getValues("paymentMethod") || defaultPaymentMethod || "" : defaultPaymentMethod || "",
+      { shouldValidate: true, shouldDirty: false },
+    );
     if (!typeShowsReceiptReference(selectedType)) {
       setValue("receiptReference", "", { shouldValidate: true, shouldDirty: false });
     }
-
     suggestedCategoryRef.current = suggestedCategory;
   }, [getValues, selectedType, setValue]);
 
@@ -165,153 +179,150 @@ export function PettyCashTransactionSheet({
     setMessage(null);
     startTransition(async () => {
       const result = await createPettyCashTransactionAction(values);
-
       if (result.status === "error") {
         if (result.fieldErrors) {
           Object.entries(result.fieldErrors).forEach(([field, error]) => {
-            if (error) {
-              setError(field as keyof PettyCashTransactionFormValues, { message: error });
-            }
+            if (error) setError(field as keyof PettyCashTransactionFormValues, { message: error });
           });
         }
-
         setMessage({ tone: "error", text: result.message });
         return;
       }
-
       setMessage({ tone: "success", text: result.message });
       setOpen(false);
       router.refresh();
     });
   });
 
+  const impactTone = previewImpact > 0 ? "mint" : previewImpact < 0 ? "rose" : "navy";
+
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant={buttonVariant} size={buttonSize}>{buttonLabel}</Button>
+        <Button variant={buttonVariant} size={buttonSize} className={buttonClassName}>
+          {buttonIcon ? <Plus className="h-4 w-4" /> : null}
+          {buttonLabel}
+        </Button>
       </SheetTrigger>
-      <SheetContent className="max-w-[96vw] overflow-y-auto border-l border-white/80 p-0 sm:max-w-2xl">
-        <div className="sticky top-0 z-10 border-b border-slate-100 bg-white/96 px-6 py-6 backdrop-blur">
-          <SheetHeader className="space-y-4">
-            <div className="flex items-start gap-4">
-              <IconTile icon={SelectedTypeIcon} tone={previewImpact < 0 ? "red" : previewImpact > 0 ? "green" : "blue"} size="lg" />
-              <div className="space-y-2">
-                <SheetTitle>{hasOpeningBalance ? "Add petty cash transaction" : "Set opening balance"}</SheetTitle>
-                <SheetDescription>{selectedTypeMeta.description}</SheetDescription>
+      <SheetContent className="sm:max-w-xl">
+        <div className="flex h-full max-h-[94vh] flex-col overflow-y-auto">
+          <div className="border-b border-border px-5 pb-4 pt-6 sm:px-6">
+            <SheetHeader>
+              <div className="flex items-start gap-3">
+                <IconTile icon={SelectedTypeIcon} tone={impactTone} size="md" />
+                <div className="space-y-1">
+                  <SheetTitle>{hasOpeningBalance ? "Add transaction" : "Set opening balance"}</SheetTitle>
+                  <SheetDescription>{selectedTypeMeta.description}</SheetDescription>
+                </div>
               </div>
-            </div>
-          </SheetHeader>
-        </div>
-        <div className="space-y-8 px-6 py-6">
-          <div className="rounded-[1.5rem] border border-slate-100 bg-slate-50/85 p-5">
-            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            </SheetHeader>
+            <div className="mt-4 flex items-center justify-between rounded-xl bg-surface-muted px-4 py-3">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Cash impact preview</p>
-                <p className="mt-2 text-base font-semibold text-slate-950">{formatCashImpact(previewImpact)}</p>
-                <p className="mt-2 text-sm leading-6 text-slate-600">{selectedTypeMeta.description}</p>
+                <p className="text-2xs uppercase tracking-wide text-text-muted">Cash impact preview</p>
+                <p className={cn("mt-0.5 font-display text-lg font-semibold tabular-nums",
+                  previewImpact > 0 && "text-mint-600",
+                  previewImpact < 0 && "text-danger-600",
+                  previewImpact === 0 && "text-text-secondary",
+                )}>
+                  {formatCashImpact(previewImpact)}
+                </p>
               </div>
-              <div className="rounded-full border border-white/90 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 shadow-sm">
-                {selectedTypeMeta.label}
-              </div>
+              <Badge variant="subtle">{selectedTypeMeta.label}</Badge>
             </div>
           </div>
 
-          <form className="space-y-6 pb-2" onSubmit={onSubmit}>
-            <div className="grid gap-5 md:grid-cols-2">
-              {hasOpeningBalance ? (
-                <FormField label="Transaction type" htmlFor="petty-cash-type" hint="Choose the movement you want to add.">
-                  <Select id="petty-cash-type" {...register("type")}>
-                    {availableTypes.map((type) => (
-                      <option key={type.value} value={type.value}>{type.label}</option>
-                    ))}
-                  </Select>
-                </FormField>
-              ) : (
-                <div className="space-y-3 rounded-[1.3rem] border border-sky-100 bg-sky-50/70 px-4 py-4">
-                  <p className="text-sm font-semibold text-slate-900">Opening Balance</p>
-                  <p className="text-sm leading-6 text-slate-600">The ledger starts with a single opening balance entry. Future cash changes can then use Top-Up or Adjustment.</p>
-                </div>
-              )}
+          <form className="flex flex-1 flex-col space-y-4 px-5 py-5 sm:px-6" onSubmit={onSubmit}>
+            {hasOpeningBalance ? (
+              <FormField label="Transaction type" htmlFor="petty-cash-type">
+                <Select id="petty-cash-type" {...register("type")}>
+                  {availableTypes.map((type) => (
+                    <option key={type.value} value={type.value}>{type.label}</option>
+                  ))}
+                </Select>
+              </FormField>
+            ) : null}
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField
+                label={selectedType === "adjustment" ? "Adjustment amount" : "Amount (AED)"}
+                htmlFor="petty-cash-amount"
+                hint={selectedType === "adjustment" ? "Positive or negative." : undefined}
+                error={errors.amount?.message}
+              >
+                <Input
+                  id="petty-cash-amount"
+                  type="number"
+                  step="0.01"
+                  inputMode="decimal"
+                  placeholder={selectedType === "adjustment" ? "e.g. -25" : "e.g. 120"}
+                  {...register("amount")}
+                />
+              </FormField>
               <FormField label="Date" htmlFor="petty-cash-date" error={errors.occurredAt?.message}>
                 <Input id="petty-cash-date" type="date" {...register("occurredAt")} />
               </FormField>
             </div>
 
-            <div className="grid gap-5 md:grid-cols-2">
-              <FormField
-                label={selectedType === "adjustment" ? "Adjustment amount" : "Amount"}
-                htmlFor="petty-cash-amount"
-                hint={selectedType === "adjustment" ? "Use a positive amount to increase cash or a negative amount to reduce it." : "Enter the movement amount in AED."}
-                error={errors.amount?.message}
-              >
-                <Input id="petty-cash-amount" type="number" step="0.01" placeholder={selectedType === "adjustment" ? "e.g. -25 or 25" : "e.g. 120"} {...register("amount")} />
-              </FormField>
-              <FormField label="Category" htmlFor="petty-cash-category" hint="Use a clear category so the ledger stays browsable later." error={errors.category?.message}>
-                <>
-                  <Input id="petty-cash-category" list={categoryListId} type="text" placeholder="e.g. Office supplies" {...register("category")} />
-                  <datalist id={categoryListId}>
-                    {categoryOptions.map((category) => (
-                      <option key={category} value={category} />
-                    ))}
-                  </datalist>
-                </>
-              </FormField>
-            </div>
+            <FormField label="Category" htmlFor="petty-cash-category" error={errors.category?.message}>
+              <Input id="petty-cash-category" list={categoryListId} type="text" placeholder="e.g. Office supplies" {...register("category")} />
+              <datalist id={categoryListId}>
+                {categoryOptions.map((category) => (
+                  <option key={category} value={category} />
+                ))}
+              </datalist>
+            </FormField>
 
-            <div className="grid gap-5 md:grid-cols-2">
-              <FormField label={getVendorLabel(selectedType)} htmlFor="petty-cash-vendor" hint="Optional, but useful when reviewing vendor and reimbursement patterns later." error={errors.vendorPayee?.message}>
-                <Input id="petty-cash-vendor" type="text" placeholder="Supplier, staff member, bank, or claimant" {...register("vendorPayee")} />
+            <FormField
+              label={getVendorLabel(selectedType)}
+              htmlFor="petty-cash-vendor"
+              optional
+              error={errors.vendorPayee?.message}
+            >
+              <Input id="petty-cash-vendor" type="text" placeholder="Supplier, staff, etc." {...register("vendorPayee")} />
+            </FormField>
+
+            {typeNeedsSelectablePaymentMethod(selectedType) ? (
+              <FormField label="Payment method" htmlFor="petty-cash-payment-method" error={errors.paymentMethod?.message}>
+                <Select id="petty-cash-payment-method" {...register("paymentMethod")}>
+                  <option value="">Select method</option>
+                  {pettyCashPaymentMethods.map((method) => (
+                    <option key={method.value} value={method.value}>{method.label}</option>
+                  ))}
+                </Select>
               </FormField>
-              {typeNeedsSelectablePaymentMethod(selectedType) ? (
-                <FormField label="Payment method" htmlFor="petty-cash-payment-method" hint="How the money moved into the fund or back to the operator." error={errors.paymentMethod?.message}>
-                  <Select id="petty-cash-payment-method" {...register("paymentMethod")}>
-                    <option value="">Select payment method</option>
-                    {pettyCashPaymentMethods.map((method) => (
-                      <option key={method.value} value={method.value}>{method.label}</option>
-                    ))}
-                  </Select>
+            ) : null}
+
+            <details className="surface-card group">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-2 p-4 text-sm font-semibold text-text-primary marker:hidden">
+                <span>Reference & receipt</span>
+                <span className="text-2xs uppercase tracking-wide text-text-muted">Optional</span>
+              </summary>
+              <div className="grid gap-3 border-t border-border p-4 sm:grid-cols-2">
+                <FormField label="Reference" htmlFor="petty-cash-reference" optional error={errors.referenceNumber?.message}>
+                  <Input id="petty-cash-reference" type="text" placeholder="e.g. PC-2026-014" {...register("referenceNumber")} />
                 </FormField>
-              ) : (
-                <div className="space-y-3 rounded-[1.3rem] border border-slate-100 bg-slate-50/80 px-4 py-4">
-                  <p className="text-sm font-semibold text-slate-900">Payment method</p>
-                  <p className="text-sm leading-6 text-slate-600">{getDefaultPaymentMethod(selectedType) ? `Recorded as ${getDefaultPaymentMethod(selectedType)?.replace("_", " ")}.` : "No separate payment method is needed for this transaction type."}</p>
-                </div>
-              )}
-            </div>
+                {typeShowsReceiptReference(selectedType) ? (
+                  <FormField label="Receipt #" htmlFor="petty-cash-receipt" optional error={errors.receiptReference?.message}>
+                    <Input id="petty-cash-receipt" type="text" placeholder="e.g. R-8821" {...register("receiptReference")} />
+                  </FormField>
+                ) : null}
+              </div>
+            </details>
 
-            <div className="grid gap-5 md:grid-cols-2">
-              <FormField label="Reference number" htmlFor="petty-cash-reference" hint="Optional bank ref, voucher number, claim ID, or internal sequence." error={errors.referenceNumber?.message}>
-                <Input id="petty-cash-reference" type="text" placeholder="e.g. PC-2026-014" {...register("referenceNumber")} />
-              </FormField>
-              {typeShowsReceiptReference(selectedType) ? (
-                <FormField label="Receipt reference" htmlFor="petty-cash-receipt" hint="Optional receipt number or scan reference for later reconciliation." error={errors.receiptReference?.message}>
-                  <Input id="petty-cash-receipt" type="text" placeholder="e.g. RECEIPT-8821" {...register("receiptReference")} />
-                </FormField>
-              ) : (
-                <div className="space-y-3 rounded-[1.3rem] border border-slate-100 bg-slate-50/80 px-4 py-4">
-                  <p className="text-sm font-semibold text-slate-900">Receipt reference</p>
-                  <p className="text-sm leading-6 text-slate-600">Receipt references are mainly useful for expense and reimbursement rows where supporting evidence may matter later.</p>
-                </div>
-              )}
-            </div>
-
-            <FormField label="Notes" htmlFor="petty-cash-notes" hint="Use notes for context that will help later reconciliation or review." error={errors.notes?.message}>
-              <Textarea id="petty-cash-notes" placeholder="What happened, why it was needed, or any detail useful for later review." {...register("notes")} />
+            <FormField label="Notes" htmlFor="petty-cash-notes" optional error={errors.notes?.message}>
+              <Textarea id="petty-cash-notes" className="min-h-[80px]" placeholder="Context for later review" {...register("notes")} />
             </FormField>
 
             {message ? <InlineMessage tone={message.tone}>{message.text}</InlineMessage> : null}
 
             <StickyActionBar>
-              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-                <p className="text-sm text-text-secondary">Keep entries short and specific so reconciliation stays quick later.</p>
-                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-end">
-                  <Button type="submit" size="lg" disabled={isPending}>
-                    {isPending ? "Saving transaction" : hasOpeningBalance ? "Save transaction" : "Set opening balance"}
-                  </Button>
-                  <Button type="button" variant="secondary" size="lg" onClick={() => setOpen(false)}>
-                    Cancel
-                  </Button>
-                </div>
+              <div className="flex gap-2">
+                <Button type="button" variant="secondary" className="flex-1" onClick={() => setOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" className="flex-[2]" disabled={isPending}>
+                  {isPending ? "Saving..." : hasOpeningBalance ? "Save transaction" : "Set opening balance"}
+                </Button>
               </div>
             </StickyActionBar>
           </form>

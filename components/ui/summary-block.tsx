@@ -9,19 +9,19 @@ type SummaryBlockProps = {
 };
 
 const toneStyles = {
-  default: "bg-slate-50 text-text-primary",
-  primary: "bg-primary-50 text-primary-700",
-  success: "bg-success-50 text-success-600",
-  warning: "bg-warning-50 text-amber-800",
-  danger: "bg-danger-50 text-danger-600",
+  default: "bg-surface-muted text-text-primary border-border",
+  primary: "bg-primary-50 text-primary-700 border-primary-100",
+  success: "bg-mint-50 text-mint-600 border-mint-100",
+  warning: "bg-accent-50 text-accent-foreground border-accent-100",
+  danger: "bg-danger-50 text-danger-600 border-danger-50",
 } as const;
 
 export function SummaryBlock({ label, value, hint, tone = "default", className }: SummaryBlockProps) {
   return (
-    <div className={cn("rounded-2xl border border-border px-4 py-4", toneStyles[tone], className)}>
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">{label}</p>
-      <div className="mt-2 text-lg font-semibold leading-none">{value}</div>
-      {hint ? <p className="mt-2 text-sm leading-5 text-text-secondary">{hint}</p> : null}
+    <div className={cn("rounded-xl border px-4 py-3.5", toneStyles[tone], className)}>
+      <p className="text-2xs font-semibold uppercase tracking-wide opacity-70">{label}</p>
+      <div className="mt-1.5 font-display text-base font-semibold leading-tight">{value}</div>
+      {hint ? <p className="mt-1.5 text-sm leading-5 opacity-80">{hint}</p> : null}
     </div>
   );
 }

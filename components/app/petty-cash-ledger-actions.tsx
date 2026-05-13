@@ -16,17 +16,15 @@ export function PettyCashLedgerActions({
 }) {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const actions = [
-    referenceNumber ? { key: "reference", label: "Copy ref", value: referenceNumber } : null,
-    receiptReference ? { key: "receipt", label: "Copy receipt", value: receiptReference } : null,
-    notes ? { key: "notes", label: "Copy note", value: notes } : null,
+    referenceNumber ? { key: "reference", label: "Ref", value: referenceNumber } : null,
+    receiptReference ? { key: "receipt", label: "Receipt", value: receiptReference } : null,
+    notes ? { key: "notes", label: "Note", value: notes } : null,
   ].filter((action): action is { key: string; label: string; value: string } => Boolean(action));
 
-  if (!actions.length) {
-    return <span className="text-xs text-slate-400">No quick action</span>;
-  }
+  if (!actions.length) return null;
 
   return (
-    <div className="flex flex-wrap justify-end gap-2">
+    <div className="flex flex-wrap gap-1.5">
       {actions.map((action) => {
         const copied = copiedKey === action.key;
         return (
@@ -34,16 +32,16 @@ export function PettyCashLedgerActions({
             key={action.key}
             type="button"
             variant="outline"
-            size="sm"
-            className="h-8 rounded-full px-3 text-xs"
+            size="xs"
+            className="h-7 rounded-full text-2xs"
             onClick={async () => {
               await navigator.clipboard.writeText(action.value);
               setCopiedKey(action.key);
               window.setTimeout(() => setCopiedKey(null), 1400);
             }}
           >
-            {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-            {copied ? "Copied" : action.label}
+            {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+            {copied ? "Copied" : `Copy ${action.label}`}
           </Button>
         );
       })}

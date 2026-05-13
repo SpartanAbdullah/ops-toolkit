@@ -2,18 +2,15 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
-import { ClipboardList } from "lucide-react";
+import { Calendar, ClipboardList } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { approveOvertimeEntryQuickAction } from "@/app/app/overtime/actions";
 import { OvertimeApprovalSheet } from "@/components/app/overtime-approval-sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { InlineMessage } from "@/components/ui/inline-message";
-import { ListRow } from "@/components/ui/list-row";
-import { SectionHeader } from "@/components/ui/section-header";
 import { formatOvertimeDate, type OvertimeLedgerRow } from "@/lib/overtime";
 
 export function OvertimeEntryList({
@@ -41,102 +38,119 @@ export function OvertimeEntryList({
   const [isPending, startTransition] = useTransition();
 
   return (
-    <Card>
-      <CardContent className="space-y-5 p-5 sm:p-6">
-        <SectionHeader
-          eyebrow="Ledger"
-          title="Overtime entries"
-          description="Review worked time, OT value, approval state, and payment status in one stacked view that works on mobile."
-          badge={`${rows.length} visible`}
+    <div className="space-y-3">
+      {message ? <InlineMessage tone={message.tone}>{message.text}</InlineMessage> : null}
+
+      {!rows.length ? (
+        <EmptyState
+          icon={ClipboardList}
+          title={hasAnyRows ? emptyTitle : "No overtime entries yet"}
+          description={hasAnyRows && filtersActive ? emptyDescription : "Tap the + button to log your first shift."}
+          action={
+            hasAnyRows && filtersActive && resetHref ? (
+              <Button asChild variant="secondary" size="sm">
+                <Link href={resetHref}>Reset filters</Link>
+              </Button>
+            ) : undefined
+          }
         />
-
-        {message ? <InlineMessage tone={message.tone}>{message.text}</InlineMessage> : null}
-
-        {!rows.length ? (
-          <EmptyState
-            icon={ClipboardList}
-            title={hasAnyRows ? emptyTitle : "No overtime entries yet"}
-            description={hasAnyRows && filtersActive ? emptyDescription : "Log the first shift to start building your OT history, approvals, and payment trail."}
-            action={
-              hasAnyRows && filtersActive && resetHref ? (
-                <Button asChild variant="secondary">
-                  <Link href={resetHref}>Reset filters</Link>
-                </Button>
-              ) : undefined
-            }
+      ) : (
+        rows.map((row) => (
+          <EntryCard
+            key={row.id}
+            row={row}
+            showWorkerName={showWorkerName}
+            showAdminActions={showAdminActions}
+            disabled={isPending && pendingApproveId === row.id}
+            onApprove={() => {
+              setMessage(null);
+              setPendingApproveId(row.id);
+              startTransition(async () => {
+                const result = await approveOvertimeEntryQuickAction(row.id);
+                setPendingApproveId(null);
+                setMessage({ tone: result.status === "success" ? "success" : "error", text: result.message });
+                router.refresh();
+              });
+            }}
           />
-        ) : (
-          <div className="space-y-3">
-            {rows.map((row) => (
-              <ListRow
-                key={row.id}
-                title={showWorkerName ? row.workerName : formatOvertimeDate(row.workedOn)}
-                subtitle={
-                  showWorkerName
-                    ? `${formatOvertimeDate(row.workedOn)} - ${row.startTimeLabel} to ${row.endTimeLabel}`
-                    : `${row.startTimeLabel} to ${row.endTimeLabel}${row.overnight ? " - Overnight" : ""}`
-                }
-                meta={row.approvedBy || "Awaiting review"}
-                badges={
-                  <>
-                    <Badge variant={row.statusVariant}>{row.statusLabel}</Badge>
-                    <Badge variant={row.paymentStatusVariant === "green" ? "green" : row.paymentStatusVariant === "amber" ? "amber" : "subtle"}>
-                      {row.paymentStatusLabel}
-                    </Badge>
-                    {row.isModifiedApproval ? <Badge variant="amber">Adjusted</Badge> : null}
-                  </>
-                }
-                aside={
-                  <div className="rounded-2xl bg-slate-50 px-4 py-3 text-left sm:text-right">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">OT amount</p>
-                    <p className="mt-1 text-sm font-semibold text-text-primary">{row.amountLabel}</p>
-                  </div>
-                }
-                details={
-                  <div className="space-y-2">
-                    <p>
-                      <span className="font-semibold text-text-primary">Worked:</span> {row.totalWorkedLabel}
-                      {" - "}
-                      <span className="font-semibold text-text-primary">OT:</span> {row.overtimeLabel}
-                    </p>
-                    <p>{row.calculationSummary}</p>
-                    {row.notes ? <p><span className="font-semibold text-text-primary">Note:</span> {row.notes}</p> : null}
-                    {row.approvalComment ? <p><span className="font-semibold text-text-primary">Comment:</span> {row.approvalComment}</p> : null}
-                    {row.wellbeingWarning ? <p className="text-amber-700">Exceeded the 2-hour wellbeing warning threshold.</p> : null}
-                  </div>
-                }
-                actions={
-                  showAdminActions && row.status === "pending" ? (
-                    <>
-                      <Button
-                        type="button"
-                        size="sm"
-                        disabled={isPending && pendingApproveId === row.id}
-                        onClick={() => {
-                          setMessage(null);
-                          setPendingApproveId(row.id);
-                          startTransition(async () => {
-                            const result = await approveOvertimeEntryQuickAction(row.id);
-                            setPendingApproveId(null);
-                            setMessage({
-                              tone: result.status === "success" ? "success" : "error",
-                              text: result.message,
-                            });
-                            router.refresh();
-                          });
-                        }}
-                      >
-                        {isPending && pendingApproveId === row.id ? "Approving" : "Approve"}
-                      </Button>
-                      <OvertimeApprovalSheet entry={row} buttonLabel="Review" />
-                    </>
-                  ) : undefined
-                }
-              />
-            ))}
+        ))
+      )}
+    </div>
+  );
+}
+
+function EntryCard({
+  row,
+  showWorkerName,
+  showAdminActions,
+  disabled,
+  onApprove,
+}: {
+  row: OvertimeLedgerRow;
+  showWorkerName: boolean;
+  showAdminActions: boolean;
+  disabled: boolean;
+  onApprove: () => void;
+}) {
+  const dateLabel = formatOvertimeDate(row.workedOn);
+  return (
+    <div className="rounded-2xl border border-border bg-white p-4 shadow-card">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1 space-y-1">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Badge variant={row.statusVariant}>{row.statusLabel}</Badge>
+            {row.isModifiedApproval ? <Badge variant="amber">Adjusted</Badge> : null}
+            {row.wellbeingWarning ? <Badge variant="rose">{"> 2h"}</Badge> : null}
           </div>
-        )}
-      </CardContent>
-    </Card>
+          <p className="font-display text-base font-semibold text-text-primary">
+            {showWorkerName ? row.workerName : dateLabel}
+          </p>
+          <p className="text-sm text-text-secondary">
+            {showWorkerName ? <span className="font-medium">{dateLabel} · </span> : null}
+            {row.startTimeLabel}–{row.endTimeLabel}
+            {row.overnight ? " · overnight" : ""}
+          </p>
+        </div>
+        <div className="shrink-0 text-right">
+          <p className="font-display text-base font-semibold tabular-nums text-text-primary">{row.amountLabel}</p>
+          <p className="mt-0.5 text-2xs uppercase tracking-wide text-text-muted">{row.overtimeLabel} OT</p>
+        </div>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-2xs text-text-muted">
+        <span className="inline-flex items-center gap-1"><Calendar className="h-3 w-3" /> {row.totalWorkedLabel} worked</span>
+        <span className="text-text-muted">·</span>
+        <span>{row.paymentStatusLabel}</span>
+        {row.approvedBy ? (
+          <>
+            <span>·</span>
+            <span>{row.approvedBy}</span>
+          </>
+        ) : null}
+      </div>
+
+      {(row.notes || row.approvalComment) && (
+        <div className="mt-3 rounded-lg bg-surface-muted px-3 py-2 text-sm leading-5 text-text-secondary">
+          {row.notes ? <p>{row.notes}</p> : null}
+          {row.approvalComment ? <p className="mt-1 italic">"{row.approvalComment}"</p> : null}
+        </div>
+      )}
+
+      {showAdminActions && row.status === "pending" ? (
+        <div className="mt-3 flex gap-2">
+          <Button
+            type="button"
+            size="sm"
+            className="flex-1"
+            variant="success"
+            disabled={disabled}
+            onClick={onApprove}
+          >
+            {disabled ? "Approving..." : "Approve"}
+          </Button>
+          <OvertimeApprovalSheet entry={row} buttonLabel="Review" buttonVariant="secondary" buttonSize="sm" />
+        </div>
+      ) : null}
+    </div>
   );
 }

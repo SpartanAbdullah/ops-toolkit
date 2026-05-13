@@ -16,7 +16,7 @@ import { Select } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { StickyActionBar } from "@/components/ui/sticky-action-bar";
 import { Textarea } from "@/components/ui/textarea";
-import { overtimeReviewDecisions, type OvertimeLedgerRow } from "@/lib/overtime";
+import { formatOvertimeDate, overtimeReviewDecisions, type OvertimeLedgerRow } from "@/lib/overtime";
 import { overtimeReviewSchema, type OvertimeReviewValues } from "@/lib/validation/overtime";
 
 function buildDefaultValues(entry: OvertimeLedgerRow): OvertimeReviewValues {
@@ -59,10 +59,7 @@ export function OvertimeApprovalSheet({
   const decision = watch("decision");
 
   useEffect(() => {
-    if (!open) {
-      return;
-    }
-
+    if (!open) return;
     reset(buildDefaultValues(entry));
     setMessage(null);
   }, [entry, open, reset]);
@@ -71,19 +68,15 @@ export function OvertimeApprovalSheet({
     setMessage(null);
     startTransition(async () => {
       const result = await reviewOvertimeEntryAction(entry.id, values);
-
       if (result.status === "error") {
         if (result.fieldErrors) {
           Object.entries(result.fieldErrors).forEach(([field, error]) => {
-            if (error) {
-              setError(field as keyof OvertimeReviewValues, { message: error });
-            }
+            if (error) setError(field as keyof OvertimeReviewValues, { message: error });
           });
         }
         setMessage({ tone: "error", text: result.message });
         return;
       }
-
       setMessage({ tone: "success", text: result.message });
       setOpen(false);
       router.refresh();
@@ -95,39 +88,39 @@ export function OvertimeApprovalSheet({
       <SheetTrigger asChild>
         <Button variant={buttonVariant} size={buttonSize}>{buttonLabel}</Button>
       </SheetTrigger>
-      <SheetContent className="max-w-[96vw] overflow-y-auto p-0 sm:max-w-xl">
-        <div className="sticky top-0 z-10 border-b border-slate-100 bg-white/96 px-6 py-6 backdrop-blur">
-          <SheetHeader className="space-y-4">
-            <div className="flex items-start gap-4">
-              <IconTile icon={ClipboardCheck} tone="green" size="lg" />
-              <div className="space-y-2">
-                <SheetTitle>Review overtime entry</SheetTitle>
-                <SheetDescription>Approve as-is, adjust the approved values, or reject with a clear comment for the worker.</SheetDescription>
+      <SheetContent className="sm:max-w-lg">
+        <div className="flex h-full max-h-[94vh] flex-col overflow-y-auto">
+          <div className="border-b border-border px-5 pb-4 pt-6 sm:px-6">
+            <SheetHeader>
+              <div className="flex items-start gap-3">
+                <IconTile icon={ClipboardCheck} tone="mint" size="md" />
+                <div className="space-y-1">
+                  <SheetTitle>Review shift</SheetTitle>
+                  <SheetDescription>Approve, adjust, or reject.</SheetDescription>
+                </div>
               </div>
-            </div>
-          </SheetHeader>
-        </div>
-        <div className="space-y-6 px-6 py-6">
-          <div className="rounded-[1.4rem] border border-slate-200/80 bg-slate-50/80 p-4">
-            <p className="text-sm font-semibold text-slate-950">{entry.workerName}</p>
-            <p className="mt-1 text-sm text-slate-500">{entry.workedOn}</p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-[1rem] border border-white/90 bg-white px-3 py-3 text-sm shadow-sm">
-                <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Worked</p>
-                <p className="mt-2 font-semibold text-slate-900">{entry.totalWorkedLabel}</p>
-              </div>
-              <div className="rounded-[1rem] border border-white/90 bg-white px-3 py-3 text-sm shadow-sm">
-                <p className="text-xs uppercase tracking-[0.18em] text-slate-400">OT</p>
-                <p className="mt-2 font-semibold text-slate-900">{entry.overtimeLabel}</p>
-              </div>
-              <div className="rounded-[1rem] border border-white/90 bg-white px-3 py-3 text-sm shadow-sm">
-                <p className="text-xs uppercase tracking-[0.18em] text-slate-400">AED</p>
-                <p className="mt-2 font-semibold text-slate-900">{entry.amountLabel}</p>
+            </SheetHeader>
+            <div className="mt-4 rounded-xl border border-border bg-surface-muted p-3.5">
+              <p className="font-display text-sm font-semibold text-text-primary">{entry.workerName}</p>
+              <p className="mt-0.5 text-2xs text-text-muted">{formatOvertimeDate(entry.workedOn)}</p>
+              <div className="mt-3 grid grid-cols-3 gap-2 text-2xs">
+                <div className="rounded-lg bg-white px-2.5 py-2">
+                  <p className="text-text-muted">Worked</p>
+                  <p className="mt-0.5 font-semibold text-text-primary">{entry.totalWorkedLabel}</p>
+                </div>
+                <div className="rounded-lg bg-white px-2.5 py-2">
+                  <p className="text-text-muted">OT</p>
+                  <p className="mt-0.5 font-semibold text-text-primary">{entry.overtimeLabel}</p>
+                </div>
+                <div className="rounded-lg bg-white px-2.5 py-2">
+                  <p className="text-text-muted">AED</p>
+                  <p className="mt-0.5 font-semibold text-text-primary">{entry.amountLabel}</p>
+                </div>
               </div>
             </div>
           </div>
 
-          <form className="space-y-6 pb-2" onSubmit={onSubmit}>
+          <form className="flex flex-1 flex-col space-y-5 px-5 py-5 sm:px-6" onSubmit={onSubmit}>
             <FormField label="Decision" htmlFor="overtime-review-decision" error={errors.decision?.message}>
               <Select id="overtime-review-decision" {...register("decision")}>
                 {overtimeReviewDecisions.map((option) => (
@@ -137,38 +130,48 @@ export function OvertimeApprovalSheet({
             </FormField>
 
             {decision !== "rejected" ? (
-              <div className="grid gap-5 md:grid-cols-3">
-                <FormField label="Approved worked hours" htmlFor="approved-worked-hours" error={errors.approvedWorkedHours?.message}>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <FormField label="Worked hrs" htmlFor="approved-worked-hours" error={errors.approvedWorkedHours?.message}>
                   <Input id="approved-worked-hours" type="number" step="0.01" min="0" max="24" {...register("approvedWorkedHours")} />
                 </FormField>
-                <FormField label="Approved OT hours" htmlFor="approved-overtime-hours" error={errors.approvedOvertimeHours?.message}>
+                <FormField label="OT hrs" htmlFor="approved-overtime-hours" error={errors.approvedOvertimeHours?.message}>
                   <Input id="approved-overtime-hours" type="number" step="0.01" min="0" max="24" {...register("approvedOvertimeHours")} />
                 </FormField>
-                <FormField label="Approved AED" htmlFor="approved-amount" error={errors.approvedAmount?.message}>
+                <FormField label="AED" htmlFor="approved-amount" error={errors.approvedAmount?.message}>
                   <Input id="approved-amount" type="number" step="0.01" min="0" {...register("approvedAmount")} />
                 </FormField>
               </div>
             ) : null}
 
-            <FormField label={decision === "rejected" ? "Rejection comment" : "Comment"} htmlFor="overtime-review-comment" hint={decision === "rejected" ? "Workers should understand why the entry was rejected." : "Optional comment for the worker or payroll trail."} error={errors.comment?.message}>
-              <Textarea id="overtime-review-comment" className="min-h-[110px]" placeholder={decision === "rejected" ? "Explain what needs correction before resubmission." : "Optional note about any adjusted values or context."} {...register("comment")} />
+            <FormField
+              label={decision === "rejected" ? "Rejection reason" : "Comment"}
+              htmlFor="overtime-review-comment"
+              optional={decision !== "rejected"}
+              error={errors.comment?.message}
+            >
+              <Textarea
+                id="overtime-review-comment"
+                className="min-h-[90px]"
+                placeholder={decision === "rejected" ? "Tell the worker what needs to be corrected." : "Optional note for the worker."}
+                {...register("comment")}
+              />
             </FormField>
 
             {message ? <InlineMessage tone={message.tone}>{message.text}</InlineMessage> : null}
 
             <StickyActionBar>
-              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-                <p className="text-sm text-text-secondary">
-                  {decision === "rejected" ? "Rejections should clearly explain what needs correction." : "Save approved values once payroll-facing numbers look correct."}
-                </p>
-                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-end">
-                  <Button type="submit" size="lg" variant={decision === "rejected" ? "danger" : "default"} disabled={isPending}>
-                    {isPending ? "Saving review" : decision === "rejected" ? "Reject entry" : "Save decision"}
-                  </Button>
-                  <Button type="button" variant="secondary" size="lg" onClick={() => setOpen(false)}>
-                    Cancel
-                  </Button>
-                </div>
+              <div className="flex gap-2">
+                <Button type="button" variant="secondary" className="flex-1" onClick={() => setOpen(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  className="flex-[2]"
+                  variant={decision === "rejected" ? "danger" : "default"}
+                  disabled={isPending}
+                >
+                  {isPending ? "Saving..." : decision === "rejected" ? "Reject" : "Save decision"}
+                </Button>
               </div>
             </StickyActionBar>
           </form>

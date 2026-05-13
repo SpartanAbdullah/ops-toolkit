@@ -9,11 +9,11 @@ const toneMap = {
   },
   success: {
     icon: CheckCircle2,
-    className: "border-success-50 bg-success-50 text-success-600",
+    className: "border-mint-100 bg-mint-50 text-mint-600",
   },
   warning: {
     icon: TriangleAlert,
-    className: "border-warning-50 bg-warning-50 text-amber-800",
+    className: "border-accent-100 bg-accent-50 text-accent-foreground",
   },
   error: {
     icon: AlertCircle,
@@ -33,9 +33,9 @@ export function InlineMessage({ tone = "info", title, children, className }: Inl
   const Icon = config.icon;
 
   return (
-    <div className={cn("flex items-start gap-3 rounded-2xl border px-4 py-3 text-sm leading-6", config.className, className)} role={tone === "error" ? "alert" : "status"}>
+    <div className={cn("flex items-start gap-2.5 rounded-xl border px-3.5 py-3 text-sm leading-5", config.className, className)} role={tone === "error" ? "alert" : "status"}>
       <Icon className="mt-0.5 h-4 w-4 shrink-0" />
-      <div className="space-y-1">
+      <div className="space-y-0.5">
         {title ? <p className="font-semibold">{title}</p> : null}
         <div>{children}</div>
       </div>
