@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowDownRight, ArrowUpRight, BanknoteArrowUp, CreditCard, HandCoins, MinusCircle, ReceiptText, Settings2 } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, BadgeCheck, BanknoteArrowUp, CreditCard, HandCoins, MinusCircle, ReceiptText, Settings2 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { PettyCashLedgerActions } from "@/components/app/petty-cash-ledger-actions";
@@ -21,6 +21,8 @@ function getRowIcon(row: PettyCashLedgerRow): LucideIcon {
       return ReceiptText;
     case "reimbursement_received":
       return HandCoins;
+    case "card_settlement":
+      return BadgeCheck;
     default:
       return Settings2;
   }
@@ -35,6 +37,9 @@ function getImpactColor(row: PettyCashLedgerRow) {
 function getIconBg(row: PettyCashLedgerRow) {
   if (row.cashImpact > 0) return "bg-mint-50 text-mint-600";
   if (row.cashImpact < 0) return "bg-danger-50 text-danger-600";
+  // Card-related entries get an amber tint since they affect card outstanding, not cash
+  if (row.type === "expense_card") return "bg-accent-50 text-accent-foreground";
+  if (row.type === "card_settlement") return "bg-mint-50 text-mint-600";
   return "bg-surface-muted text-text-secondary";
 }
 
@@ -87,10 +92,28 @@ export function PettyCashLedger({
                     <p className="mt-0.5 truncate text-sm text-text-secondary">{row.category}</p>
                   </div>
                   <div className="shrink-0 text-right">
-                    <p className={`font-display text-base font-semibold tabular-nums ${getImpactColor(row)}`}>
-                      {row.cashImpact >= 0 ? "+" : "−"}{row.amountLabel}
-                    </p>
-                    <p className="mt-0.5 text-2xs text-text-muted">Bal: {row.runningBalanceLabel}</p>
+                    {row.type === "expense_card" ? (
+                      <>
+                        <p className="font-display text-base font-semibold tabular-nums text-accent-foreground">
+                          {row.amountLabel}
+                        </p>
+                        <p className="mt-0.5 text-2xs uppercase tracking-wide text-accent-foreground/70">on card</p>
+                      </>
+                    ) : row.type === "card_settlement" ? (
+                      <>
+                        <p className="font-display text-base font-semibold tabular-nums text-mint-600">
+                          −{row.amountLabel}
+                        </p>
+                        <p className="mt-0.5 text-2xs uppercase tracking-wide text-mint-600/80">card paid</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className={`font-display text-base font-semibold tabular-nums ${getImpactColor(row)}`}>
+                          {row.cashImpact >= 0 ? "+" : "−"}{row.amountLabel}
+                        </p>
+                        <p className="mt-0.5 text-2xs text-text-muted">Bal: {row.runningBalanceLabel}</p>
+                      </>
+                    )}
                   </div>
                 </div>
 

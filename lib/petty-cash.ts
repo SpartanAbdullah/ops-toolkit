@@ -43,6 +43,12 @@ export const pettyCashTransactionTypeMeta = {
     defaultCategory: "Manual adjustment",
     cashImpact: "variable",
   },
+  card_settlement: {
+    label: "Card Settlement",
+    description: "Record that a card balance has been paid off (from personal bank, reimbursement, or any other source). Reduces card outstanding without touching cash on hand.",
+    defaultCategory: "Card payment",
+    cashImpact: "none",
+  },
 } as const;
 
 export type PettyCashTransactionTypeValue = keyof typeof pettyCashTransactionTypeMeta;
@@ -90,6 +96,8 @@ export type PettyCashSummary = {
   pendingReimbursementTotal: number;
   reimbursementsReceivedTotal: number;
   unsubmittedExpensesTotal: number;
+  cardOutstandingTotal: number;
+  netPosition: number;
   transactionCount: number;
 };
 
@@ -107,6 +115,7 @@ export const pettyCashDefaultCategories = [
   "Admin",
   "Staff reimbursement",
   "Manual adjustment",
+  "Card payment",
   "Miscellaneous",
 ] as const;
 
@@ -184,6 +193,7 @@ export function getDefaultPaymentMethod(type: PettyCashTransactionTypeValue): Pe
       return "card";
     case "cash_top_up":
     case "reimbursement_received":
+    case "card_settlement":
       return "bank_transfer";
     default:
       return null;
@@ -191,11 +201,17 @@ export function getDefaultPaymentMethod(type: PettyCashTransactionTypeValue): Pe
 }
 
 export function typeNeedsSelectablePaymentMethod(type: PettyCashTransactionTypeValue) {
-  return type === "cash_top_up" || type === "reimbursement_received";
+  return type === "cash_top_up" || type === "reimbursement_received" || type === "card_settlement";
 }
 
 export function typeShowsReceiptReference(type: PettyCashTransactionTypeValue) {
-  return type === "expense_cash" || type === "expense_card" || type === "reimbursement_submitted" || type === "reimbursement_received";
+  return (
+    type === "expense_cash" ||
+    type === "expense_card" ||
+    type === "reimbursement_submitted" ||
+    type === "reimbursement_received" ||
+    type === "card_settlement"
+  );
 }
 
 export function getCashImpact(type: PettyCashTransactionTypeValue, amount: number) {
@@ -208,6 +224,17 @@ export function getCashImpact(type: PettyCashTransactionTypeValue, amount: numbe
       return -amount;
     case "adjustment":
       return amount;
+    default:
+      return 0;
+  }
+}
+
+export function getCardImpact(type: PettyCashTransactionTypeValue, amount: number) {
+  switch (type) {
+    case "expense_card":
+      return amount; // adds to card outstanding
+    case "card_settlement":
+      return -amount; // reduces card outstanding
     default:
       return 0;
   }
@@ -296,16 +323,30 @@ export function calculatePettyCashSummary(rows: PettyCashLedgerRow[], referenceD
     (total, row) => (row.type === "expense_cash" || row.type === "expense_card") ? total + row.amount : total,
     0,
   );
+  const cardSpendTotal = rows.reduce(
+    (total, row) => row.type === "expense_card" ? total + row.amount : total,
+    0,
+  );
+  const cardSettlementTotal = rows.reduce(
+    (total, row) => row.type === "card_settlement" ? total + row.amount : total,
+    0,
+  );
   // Unsubmitted = total expenses minus what's already been claimed (regardless of received/not).
   // This is what the operator should be filing as a reimbursement next.
   const unsubmittedExpensesTotal = Math.max(allExpensesTotal - submittedTotal, 0);
+  const cardOutstandingTotal = Math.max(cardSpendTotal - cardSettlementTotal, 0);
+  const currentCashBalance = rows.at(-1)?.runningBalance ?? 0;
+  // Net position = cash on hand minus what you still owe on cards. Shows "real" available value.
+  const netPosition = currentCashBalance - cardOutstandingTotal;
 
   return {
-    currentCashBalance: rows.at(-1)?.runningBalance ?? 0,
+    currentCashBalance,
     thisMonthExpenses,
     pendingReimbursementTotal: Math.max(submittedTotal - receivedTotal, 0),
     reimbursementsReceivedTotal: receivedTotal,
     unsubmittedExpensesTotal,
+    cardOutstandingTotal,
+    netPosition,
     transactionCount: rows.length,
   };
 }

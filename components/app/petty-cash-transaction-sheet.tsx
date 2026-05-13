@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { BanknoteArrowDown, BanknoteArrowUp, ClipboardList, CreditCard, HandCoins, Plus, ReceiptText, Settings2 } from "lucide-react";
+import { BadgeCheck, BanknoteArrowDown, BanknoteArrowUp, ClipboardList, CreditCard, HandCoins, Plus, ReceiptText, Settings2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -41,6 +41,7 @@ const typeIcons: Record<PettyCashTransactionTypeValue, typeof ClipboardList> = {
   reimbursement_submitted: ReceiptText,
   reimbursement_received: HandCoins,
   adjustment: Settings2,
+  card_settlement: BadgeCheck,
 };
 
 function getTodayInputValue() {
@@ -76,6 +77,8 @@ function getVendorLabel(type: PettyCashTransactionTypeValue) {
       return "Submitted to";
     case "reimbursement_received":
       return "Received from";
+    case "card_settlement":
+      return "Card / institution";
     default:
       return "Vendor / payee";
   }
@@ -246,7 +249,11 @@ export function PettyCashTransactionSheet({
                 </p>
               ) : selectedType === "expense_card" ? (
                 <p className="rounded-lg bg-primary-50 px-3 py-2 text-2xs leading-4 text-primary-700">
-                  Card spend doesn't reduce cash on hand, but it still counts toward what you can claim from accounts.
+                  Cash on hand is untouched, but this adds to <span className="font-semibold">Card outstanding</span>. Log a <span className="font-semibold">Card Settlement</span> when the card balance is paid off.
+                </p>
+              ) : selectedType === "card_settlement" ? (
+                <p className="rounded-lg bg-mint-50 px-3 py-2 text-2xs leading-4 text-mint-600">
+                  Reduces <span className="font-semibold">Card outstanding</span> by this amount. Use when you've paid the card from personal bank, a reimbursement, or any source other than petty cash.
                 </p>
               ) : null}
             </div>

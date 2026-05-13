@@ -33,6 +33,7 @@ enum PettyCashTransactionType {
   reimbursement_submitted
   reimbursement_received
   adjustment
+  card_settlement
 }
 
 enum PettyCashPaymentMethod {

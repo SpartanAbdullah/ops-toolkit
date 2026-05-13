@@ -1,4 +1,4 @@
-import { ArrowDownRight, ArrowUpRight, HandCoins, Hourglass, ReceiptText, Wallet } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, BadgeCheck, CreditCard, HandCoins, Hourglass, ReceiptText, Wallet } from "lucide-react";
 
 import { AppPageHeader } from "@/components/app/app-page-header";
 import { PettyCashExportButton } from "@/components/app/petty-cash-export-button";
@@ -124,6 +124,20 @@ export default async function PettyCashPage({
           <p className="mt-2 font-display text-4xl font-semibold leading-none tracking-tight tabular-nums sm:text-[52px]">
             {formatCurrency(summary.currentCashBalance)}
           </p>
+          {summary.cardOutstandingTotal > 0 ? (
+            <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-accent-500/30 bg-white/5 px-3 py-1.5">
+              <CreditCard className="h-3.5 w-3.5 text-accent-500" />
+              <span className="text-2xs uppercase tracking-wide text-white/70">Card owed</span>
+              <span className="font-display text-sm font-semibold tabular-nums text-accent-500">
+                −{formatCurrency(summary.cardOutstandingTotal)}
+              </span>
+              <span className="text-2xs uppercase tracking-wide text-white/50">·</span>
+              <span className="text-2xs uppercase tracking-wide text-white/70">Net</span>
+              <span className="font-display text-sm font-semibold tabular-nums text-white">
+                {formatCurrency(summary.netPosition)}
+              </span>
+            </div>
+          ) : null}
           <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-sm">
             <span className="inline-flex items-center gap-1.5 text-white/85">
               <ArrowDownRight className="h-4 w-4 text-accent-500" />
@@ -195,6 +209,26 @@ export default async function PettyCashPage({
         </Callout>
       ) : null}
 
+      {/* Card outstanding banner */}
+      {hasOpeningBalance && summary.cardOutstandingTotal > 0 ? (
+        <Callout
+          title={`${formatCurrency(summary.cardOutstandingTotal)} outstanding on card`}
+          description="Card spend hasn't been paid back yet. Settle when the card balance is cleared (from personal bank, reimbursement, or any source)."
+          icon={CreditCard}
+          tone="amber"
+        >
+          <PettyCashTransactionSheet
+            buttonLabel={`Record settlement of ${formatCurrency(summary.cardOutstandingTotal)}`}
+            buttonVariant="accent"
+            buttonSize="sm"
+            categories={categories}
+            hasOpeningBalance={hasOpeningBalance}
+            initialType="card_settlement"
+            prefilledAmount={summary.cardOutstandingTotal.toFixed(2)}
+          />
+        </Callout>
+      ) : null}
+
       {/* Pending claim banner */}
       {hasOpeningBalance && summary.pendingReimbursementTotal > 0 ? (
         <Callout
@@ -219,32 +253,32 @@ export default async function PettyCashPage({
       {hasAnyRows ? (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatCard
-            label="This month expenses"
+            label="Card outstanding"
+            value={formatCurrency(summary.cardOutstandingTotal)}
+            description="Spent on card, not paid"
+            icon={CreditCard}
+            tone={summary.cardOutstandingTotal > 0 ? "amber" : "slate"}
+          />
+          <StatCard
+            label="This month spend"
             value={formatCurrency(summary.thisMonthExpenses)}
-            description="Cash + card spend"
+            description="Cash + card combined"
             icon={ReceiptText}
             tone="rose"
           />
           <StatCard
             label="Unclaimed"
             value={formatCurrency(summary.unsubmittedExpensesTotal)}
-            description="Spent but not yet submitted"
+            description="Spent but not submitted"
             icon={ReceiptText}
-            tone="amber"
+            tone={summary.unsubmittedExpensesTotal > 0 ? "amber" : "slate"}
           />
           <StatCard
             label="Awaiting reimbursement"
             value={formatCurrency(summary.pendingReimbursementTotal)}
             description="Submitted, not received"
             icon={Hourglass}
-            tone="amber"
-          />
-          <StatCard
-            label="Reimbursed"
-            value={formatCurrency(summary.reimbursementsReceivedTotal)}
-            description="Money returned"
-            icon={HandCoins}
-            tone="mint"
+            tone={summary.pendingReimbursementTotal > 0 ? "amber" : "slate"}
           />
         </div>
       ) : null}
