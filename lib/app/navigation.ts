@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { Clock3, Users, UserRound, Wallet } from "lucide-react";
+import { BarChart3, Clock3, Home, UserRound, Wallet } from "lucide-react";
 
 export type AppNavItem = {
   href: string;
@@ -9,9 +9,10 @@ export type AppNavItem = {
 };
 
 export const primaryAppNavItems: AppNavItem[] = [
+  { href: "/app", label: "Home", icon: Home, description: "Dashboard and quick actions" },
   { href: "/app/overtime", label: "Overtime", icon: Clock3, description: "Log shifts, approve, pay" },
   { href: "/app/petty-cash", label: "Cash", icon: Wallet, description: "Ledger and reimbursements" },
-  { href: "/app/team", label: "Team", icon: Users, description: "Members and invites" },
+  { href: "/app/reports", label: "Reports", icon: BarChart3, description: "Cash and overtime summaries" },
   { href: "/app/profile", label: "Profile", icon: UserRound, description: "Your account" },
 ];
 

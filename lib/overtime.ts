@@ -1,4 +1,5 @@
 import { formatCurrency } from "@/lib/utils";
+import { DEFAULT_TIMEZONE, getZonedRangeBounds, getZonedMonthBounds } from "@/lib/tz";
 
 const MINUTES_PER_HOUR = 60;
 const MINUTES_PER_DAY = 1440;
@@ -194,18 +195,6 @@ function dateFromInput(value: string) {
   return new Date(`${value}T12:00:00.000Z`);
 }
 
-function addUtcDays(date: Date, days: number) {
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + days));
-}
-
-function getUtcDayStart(date: Date) {
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
-}
-
-function formatDateInput(date: Date) {
-  return date.toISOString().slice(0, 10);
-}
-
 function overlapMinutes(start: number, end: number, windowStart: number, windowEnd: number) {
   return Math.max(0, Math.min(end, windowEnd) - Math.max(start, windowStart));
 }
@@ -274,39 +263,21 @@ export function getOvertimeStatusVariant(value: OvertimeEntryStatusValue) {
   }
 }
 
-export function getRangeBounds(range: OvertimeRangeValue, referenceDate = new Date()) {
-  const reference = getUtcDayStart(referenceDate);
-  const dayOfWeek = reference.getUTCDay();
-  const daysFromMonday = (dayOfWeek + 6) % 7;
-  const thisWeekStart = addUtcDays(reference, -daysFromMonday);
-  const thisWeekEnd = addUtcDays(thisWeekStart, 6);
-
-  switch (range) {
-    case "this_week":
-      return { from: formatDateInput(thisWeekStart), to: formatDateInput(thisWeekEnd) };
-    case "last_week": {
-      const from = addUtcDays(thisWeekStart, -7);
-      const to = addUtcDays(thisWeekStart, -1);
-      return { from: formatDateInput(from), to: formatDateInput(to) };
-    }
-    case "last_month": {
-      const start = new Date(Date.UTC(reference.getUTCFullYear(), reference.getUTCMonth() - 1, 1));
-      const end = new Date(Date.UTC(reference.getUTCFullYear(), reference.getUTCMonth(), 0));
-      return { from: formatDateInput(start), to: formatDateInput(end) };
-    }
-    case "custom":
-      return { from: "", to: "" };
-    default: {
-      const start = new Date(Date.UTC(reference.getUTCFullYear(), reference.getUTCMonth(), 1));
-      const end = new Date(Date.UTC(reference.getUTCFullYear(), reference.getUTCMonth() + 1, 0));
-      return { from: formatDateInput(start), to: formatDateInput(end) };
-    }
-  }
+export function getRangeBounds(
+  range: OvertimeRangeValue,
+  timezone: string = DEFAULT_TIMEZONE,
+  referenceDate: Date = new Date(),
+) {
+  if (range === "custom") return { from: "", to: "" };
+  return getZonedRangeBounds(range, timezone, referenceDate);
 }
 
-export function normalizeOvertimeFilters(filters: Partial<OvertimeFilters>) {
+export function normalizeOvertimeFilters(
+  filters: Partial<OvertimeFilters>,
+  timezone: string = DEFAULT_TIMEZONE,
+) {
   const range = overtimeRangeOptions.some((option) => option.value === filters.range) ? (filters.range as OvertimeRangeValue) : "this_month";
-  const derivedBounds = getRangeBounds(range);
+  const derivedBounds = getRangeBounds(range, timezone);
   const from = range === "custom" ? filters.from ?? "" : derivedBounds.from;
   const to = range === "custom" ? filters.to ?? "" : derivedBounds.to;
   const status = overtimeEntryStatuses.some((option) => option.value === filters.status) ? filters.status : "all";
@@ -782,15 +753,15 @@ export function filterOvertimeRows(rows: OvertimeLedgerRow[], filters: ReturnTyp
   });
 }
 
-export function calculateOvertimeSummary(rows: OvertimeLedgerRow[], referenceDate = new Date()): OvertimeSummary {
-  const monthStart = new Date(Date.UTC(referenceDate.getUTCFullYear(), referenceDate.getUTCMonth(), 1));
-  const monthEnd = new Date(Date.UTC(referenceDate.getUTCFullYear(), referenceDate.getUTCMonth() + 1, 1));
+export function calculateOvertimeSummary(
+  rows: OvertimeLedgerRow[],
+  timezone: string = DEFAULT_TIMEZONE,
+  referenceDate: Date = new Date(),
+): OvertimeSummary {
+  const { from: monthStart, to: monthEnd } = getZonedMonthBounds(referenceDate, timezone);
 
   const approvedRows = rows.filter((row) => row.status === "approved" || row.status === "auto_approved");
-  const approvedThisMonth = approvedRows.filter((row) => {
-    const workedDate = dateFromInput(row.workedOn);
-    return workedDate >= monthStart && workedDate < monthEnd;
-  });
+  const approvedThisMonth = approvedRows.filter((row) => row.workedOn >= monthStart && row.workedOn <= monthEnd);
 
   return {
     pendingCount: rows.filter((row) => row.status === "pending").length,

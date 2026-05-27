@@ -20,7 +20,7 @@ function getSafeNext(next: string | null | undefined) {
   return next;
 }
 
-export function SignupForm() {
+export function SignupForm({ publicSignupEnabled }: { publicSignupEnabled: boolean }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, isConfigured } = useAuth();
@@ -41,6 +41,7 @@ export function SignupForm() {
       email: "",
       password: "",
       confirmPassword: "",
+      acceptedTerms: false,
     },
   });
 
@@ -53,6 +54,10 @@ export function SignupForm() {
       const supabase = getBrowserSupabaseClient();
       if (!supabase) {
         setFormError("Supabase is not configured.");
+        return;
+      }
+      if (!publicSignupEnabled) {
+        setFormError("Public signup is disabled. Ask an owner or admin for access.");
         return;
       }
       setFormError(null);
@@ -82,6 +87,11 @@ export function SignupForm() {
 
   return (
     <div className="space-y-4">
+      {!publicSignupEnabled ? (
+        <InlineMessage tone="warning">
+          Public signup is disabled for production. Ask an owner or admin to create access through the approved onboarding process.
+        </InlineMessage>
+      ) : null}
       <form className="space-y-4" onSubmit={onSubmit}>
         <FormField label="Your name" htmlFor="signup-name" error={errors.fullName?.message}>
           <Input id="signup-name" type="text" placeholder="Aisha Khan" autoComplete="name" {...register("fullName")} />
@@ -95,24 +105,64 @@ export function SignupForm() {
         <FormField label="Confirm password" htmlFor="signup-confirm" error={errors.confirmPassword?.message}>
           <Input id="signup-confirm" type="password" placeholder="Repeat password" autoComplete="new-password" {...register("confirmPassword")} />
         </FormField>
+
+        <div className="space-y-1.5">
+          <label htmlFor="signup-terms" className="flex items-start gap-2.5 text-sm leading-5 text-text-secondary">
+            <input
+              id="signup-terms"
+              type="checkbox"
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border-border accent-primary-600 focus-visible:outline-none focus-visible:shadow-focus"
+              {...register("acceptedTerms")}
+            />
+            <span>
+              I agree to the{" "}
+              <Link href="/terms" target="_blank" className="font-semibold text-primary-700 underline-offset-2 hover:underline">
+                Terms of Use
+              </Link>{" "}
+              and{" "}
+              <Link href="/privacy" target="_blank" className="font-semibold text-primary-700 underline-offset-2 hover:underline">
+                Privacy Policy
+              </Link>
+              .
+            </span>
+          </label>
+          {errors.acceptedTerms?.message ? (
+            <p className="text-2xs leading-4 text-danger-600">{errors.acceptedTerms.message}</p>
+          ) : null}
+        </div>
+
         {formError ? <InlineMessage tone="error">{formError}</InlineMessage> : null}
         {successMessage ? <InlineMessage tone="success">{successMessage}</InlineMessage> : null}
         {!isConfigured ? <InlineMessage tone="warning">Supabase keys are not set yet.</InlineMessage> : null}
-        <Button type="submit" className="w-full" size="lg" disabled={isPending || !isConfigured}>
+        <Button type="submit" className="w-full" size="lg" disabled={isPending || !isConfigured || !publicSignupEnabled}>
           {isPending ? "Creating account..." : "Create account"}
         </Button>
       </form>
 
-      <div className="relative py-2">
-        <div className="absolute inset-0 flex items-center">
-          <div className="h-px w-full bg-border" />
+      {publicSignupEnabled ? (
+        <div className="relative py-2">
+          <div className="absolute inset-0 flex items-center">
+            <div className="h-px w-full bg-border" />
+          </div>
+          <div className="relative flex justify-center">
+            <span className="bg-white px-3 text-2xs uppercase tracking-wide text-text-muted">or</span>
+          </div>
         </div>
-        <div className="relative flex justify-center">
-          <span className="bg-white px-3 text-2xs uppercase tracking-wide text-text-muted">or</span>
-        </div>
-      </div>
+      ) : null}
 
-      <GoogleAuthButton nextPath={nextPath} label="Sign up with Google" />
+      <div className="space-y-2">
+        {publicSignupEnabled ? (
+          <>
+            <GoogleAuthButton nextPath={nextPath} label="Sign up with Google" />
+            <p className="px-1 text-2xs leading-4 text-text-muted">
+              By continuing with Google you also agree to the{" "}
+              <Link href="/terms" target="_blank" className="underline underline-offset-2 hover:text-text-primary">Terms</Link>{" "}
+              and{" "}
+              <Link href="/privacy" target="_blank" className="underline underline-offset-2 hover:text-text-primary">Privacy Policy</Link>.
+            </p>
+          </>
+        ) : null}
+      </div>
 
       <p className="pt-2 text-center text-sm text-text-secondary">
         Already have an account?{" "}

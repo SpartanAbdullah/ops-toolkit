@@ -11,10 +11,15 @@ export const signupSchema = z
     email: z.string().trim().email("Enter a valid email address."),
     password: z.string().min(8, "Password must be at least 8 characters."),
     confirmPassword: z.string().min(8, "Confirm your password."),
+    acceptedTerms: z.boolean(),
   })
   .refine((values) => values.password === values.confirmPassword, {
     message: "Passwords do not match.",
     path: ["confirmPassword"],
+  })
+  .refine((values) => values.acceptedTerms === true, {
+    message: "Please accept the Terms and Privacy Policy to continue.",
+    path: ["acceptedTerms"],
   });
 
 export const emailUpdateSchema = z.object({

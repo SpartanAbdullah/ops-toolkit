@@ -10,13 +10,19 @@ datasource db {
 
 enum AppRole {
   individual
+  owner
   worker
   admin
+  supervisor
+  finance
 }
 
 enum TeamMemberRole {
+  owner
   worker
   admin
+  supervisor
+  finance
 }
 
 enum NotificationType {
@@ -49,6 +55,11 @@ enum PettyCashTransactionStatus {
   received
 }
 
+enum CashLedgerStatus {
+  active
+  closed
+}
+
 enum PettyCashReimbursementStatus {
   not_applicable
   pending
@@ -73,6 +84,11 @@ enum OvertimeApprovalDecision {
   partially_approved
 }
 
+enum OperationalModule {
+  petty_cash
+  overtime
+}
+
 model User {
   id                           String                  @id @db.Uuid
   email                        String                  @unique
@@ -90,10 +106,14 @@ model User {
   overtimeIndividualSettings   OvertimeSettings?       @relation("IndividualOvertimeSettings")
   overtimePaymentRecordsMarked OvertimePaymentRecord[] @relation("OvertimePaymentMarker")
   overtimePaymentRecordsWorker OvertimePaymentRecord[] @relation("OvertimePaymentWorker")
+  operationalPeriodLocks       OperationalPeriodLock[]  @relation("OperationalPeriodLockLocker")
   overtimeWorkerProfiles       OvertimeWorkerProfile[] @relation("OvertimeWorkerProfileUser")
   ownedTeams                   Team[]                  @relation("TeamOwner")
-  pettyCashAccounts            PettyCashAccount[]
+  cashLedgers                  CashLedger[]            @relation("CashLedgerCreator")
+  cashLedgersCustodied         CashLedger[]            @relation("CashLedgerCustodian")
+  pettyCashClosingsLocked      PettyCashClosing[]      @relation("PettyCashClosingLocker")
   pettyCashTransactionsCreated PettyCashTransaction[]  @relation("PettyCashTransactionCreator")
+  pettyCashTransactionsVoided  PettyCashTransaction[]  @relation("PettyCashTransactionVoider")
   profile                      Profile?
   teamMemberships              TeamMember[]
 
@@ -126,9 +146,10 @@ model Team {
   overtimeEntries        OvertimeEntry[]         @relation("TeamOvertimeEntries")
   overtimeHolidays       OvertimeHolidayDate[]   @relation("TeamOvertimeHolidays")
   overtimePayments       OvertimePaymentRecord[] @relation("TeamOvertimePaymentRecords")
+  operationalPeriodLocks OperationalPeriodLock[]
   overtimeSettings       OvertimeSettings?       @relation("TeamOvertimeSettings")
   overtimeWorkerProfiles OvertimeWorkerProfile[] @relation("TeamOvertimeWorkerProfiles")
-  pettyCashAccounts      PettyCashAccount[]
+  cashLedgers            CashLedger[]
 
   @@index([ownerId])
 }
@@ -198,26 +219,32 @@ model Notification {
   @@index([teamId])
 }
 
-model PettyCashAccount {
-  id           String                 @id @default(uuid()) @db.Uuid
-  userId       String                 @db.Uuid
-  teamId       String?                @db.Uuid
-  name         String                 @default("Primary Petty Cash")
-  currency     String                 @default("AED") @db.VarChar(3)
-  notes        String?
-  createdAt    DateTime               @default(now())
-  updatedAt    DateTime               @updatedAt
-  user         User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  team         Team?                  @relation(fields: [teamId], references: [id], onDelete: SetNull)
-  transactions PettyCashTransaction[]
+model CashLedger {
+  id              String                 @id @default(uuid()) @db.Uuid
+  userId          String                 @db.Uuid
+  teamId          String?                @db.Uuid
+  custodianUserId String?                @db.Uuid
+  name            String                 @default("Primary Petty Cash")
+  currency        String                 @default("AED") @db.VarChar(3)
+  status          CashLedgerStatus       @default(active)
+  notes           String?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  creator         User                   @relation("CashLedgerCreator", fields: [userId], references: [id], onDelete: Cascade)
+  custodian       User?                  @relation("CashLedgerCustodian", fields: [custodianUserId], references: [id], onDelete: SetNull)
+  team            Team?                  @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  transactions    PettyCashTransaction[]
+  closings        PettyCashClosing[]
 
   @@unique([userId])
   @@index([teamId])
+  @@index([custodianUserId])
+  @@map("PettyCashAccount")
 }
 
 model PettyCashTransaction {
   id                  String                       @id @default(uuid()) @db.Uuid
-  accountId           String                       @db.Uuid
+  ledgerId            String                       @map("accountId") @db.Uuid
   createdByUserId     String                       @db.Uuid
   occurredAt          DateTime
   type                PettyCashTransactionType
@@ -230,15 +257,40 @@ model PettyCashTransaction {
   receiptReference    String?
   status              PettyCashTransactionStatus   @default(posted)
   reimbursementStatus PettyCashReimbursementStatus @default(not_applicable)
+  voidedAt            DateTime?
+  voidedByUserId      String?                      @db.Uuid
+  voidedReason        String?
   createdAt           DateTime                     @default(now())
   updatedAt           DateTime                     @updatedAt
-  account             PettyCashAccount             @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  ledger              CashLedger                   @relation(fields: [ledgerId], references: [id], onDelete: Cascade)
   createdBy           User                         @relation("PettyCashTransactionCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  voidedBy            User?                        @relation("PettyCashTransactionVoider", fields: [voidedByUserId], references: [id], onDelete: SetNull)
 
-  @@index([accountId, occurredAt])
+  @@index([ledgerId, occurredAt])
   @@index([createdByUserId, occurredAt])
   @@index([type, occurredAt])
   @@index([reimbursementStatus, occurredAt])
+  @@index([voidedAt])
+}
+
+model PettyCashClosing {
+  id              String     @id @default(uuid()) @db.Uuid
+  ledgerId        String     @db.Uuid
+  teamId          String     @db.Uuid
+  periodMonth     DateTime
+  expectedBalance Decimal    @db.Decimal(12, 2)
+  countedCash     Decimal    @db.Decimal(12, 2)
+  difference      Decimal    @db.Decimal(12, 2)
+  financeNote     String?
+  lockedByUserId  String     @db.Uuid
+  lockedAt        DateTime   @default(now())
+  createdAt       DateTime   @default(now())
+  ledger          CashLedger @relation(fields: [ledgerId], references: [id], onDelete: Cascade)
+  lockedBy        User       @relation("PettyCashClosingLocker", fields: [lockedByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([ledgerId, periodMonth])
+  @@index([teamId, periodMonth])
+  @@index([lockedByUserId, lockedAt])
 }
 
 model OvertimeSettings {
@@ -357,4 +409,21 @@ model OvertimePaymentRecord {
 
   @@index([teamId, workerUserId, paidUntilDate])
   @@index([workerUserId, paidUntilDate])
+}
+
+model OperationalPeriodLock {
+  id             String            @id @default(uuid()) @db.Uuid
+  teamId         String            @db.Uuid
+  module         OperationalModule
+  periodMonth    DateTime
+  lockedByUserId String            @db.Uuid
+  lockedAt       DateTime          @default(now())
+  note           String?
+  createdAt      DateTime          @default(now())
+  lockedBy       User              @relation("OperationalPeriodLockLocker", fields: [lockedByUserId], references: [id], onDelete: Restrict)
+  team           Team              @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, module, periodMonth])
+  @@index([lockedByUserId, lockedAt])
+  @@index([teamId, module, lockedAt])
 }

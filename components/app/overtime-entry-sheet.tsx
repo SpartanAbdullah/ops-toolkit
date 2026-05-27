@@ -72,6 +72,7 @@ export function OvertimeEntrySheet({
     handleSubmit,
     reset,
     setError,
+    setValue,
     formState: { errors },
   } = useForm<OvertimeEntryValues>({
     resolver: zodResolver(overtimeEntrySchema),
@@ -219,6 +220,31 @@ export function OvertimeEntrySheet({
               <FormField label="End time" htmlFor="overtime-end" error={errors.endTime?.message}>
                 <Input id="overtime-end" type="time" {...register("endTime")} />
               </FormField>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-text-primary">Common shifts</p>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  ["09:00", "18:00", "9-6"],
+                  ["09:00", "19:00", "9-7"],
+                  ["14:00", "23:00", "2-11"],
+                  ["20:00", "02:00", "8-2"],
+                ].map(([start, end, label]) => (
+                  <button
+                    key={label}
+                    type="button"
+                    className="tap-highlight rounded-xl border border-border bg-white px-3 py-3 text-sm font-semibold text-text-primary transition hover:border-primary-200 hover:bg-primary-50"
+                    onClick={() => {
+                      setValue("startTime", start, { shouldDirty: true, shouldValidate: true });
+                      setValue("endTime", end, { shouldDirty: true, shouldValidate: true });
+                      setValue("overnight", end < start, { shouldDirty: true, shouldValidate: true });
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <label className="flex items-start gap-3 rounded-xl border border-border bg-surface-muted px-4 py-3 text-sm text-text-secondary">

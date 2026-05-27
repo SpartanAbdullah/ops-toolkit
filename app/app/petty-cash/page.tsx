@@ -1,14 +1,19 @@
+import Link from "next/link";
 import { ArrowDownRight, ArrowUpRight, BadgeCheck, CreditCard, HandCoins, Hourglass, ReceiptText, Wallet } from "lucide-react";
 
 import { AppPageHeader } from "@/components/app/app-page-header";
+import { PettyCashClosingCard } from "@/components/app/petty-cash-closing-card";
 import { PettyCashExportButton } from "@/components/app/petty-cash-export-button";
 import { PettyCashFilterBar } from "@/components/app/petty-cash-filter-bar";
 import { PettyCashLedger } from "@/components/app/petty-cash-ledger";
 import { PettyCashPendingProvider } from "@/components/app/petty-cash-pending-provider";
 import { PettyCashPendingRows } from "@/components/app/petty-cash-pending-rows";
 import { PettyCashTransactionSheet } from "@/components/app/petty-cash-transaction-sheet";
+import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
 import { StatCard } from "@/components/ui/stat-card";
+import { canManagePettyCashLedger, canViewPettyCashLedger } from "@/lib/app/authorization";
+import { formatOperationalPeriod, getOperationalPeriodMonth } from "@/lib/app/period-locks";
 import { getAppContext } from "@/lib/app/session";
 import {
   buildRunningLedgerRows,
@@ -34,6 +39,8 @@ export default async function PettyCashPage({
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const context = await getAppContext();
+  const canViewCash = canViewPettyCashLedger(context.activeMembership?.role);
+  const canManageCash = canManagePettyCashLedger(context.activeMembership?.role);
   const resolvedSearchParams = (await searchParams) ?? {};
   const filters = {
     from: getQueryValue(resolvedSearchParams.from) ?? "",
@@ -43,10 +50,63 @@ export default async function PettyCashPage({
     reimbursement: getQueryValue(resolvedSearchParams.reimbursement) ?? "all",
   };
 
-  const account = await prisma.pettyCashAccount.findUnique({
-    where: { userId: context.user.id },
+  if (!context.activeTeam) {
+    return (
+      <div className="space-y-5 animate-fade-up">
+        <AppPageHeader
+          eyebrow="Cash"
+          badge="Team required"
+          title="Petty Cash"
+          description="Petty cash records are scoped to a team workspace."
+        />
+        <Callout
+          title="Create or join a team first"
+          description="Production cash records must belong to a company/team ledger, not a personal account."
+          icon={Wallet}
+          tone="amber"
+        >
+          <Button asChild variant="accent" size="sm">
+            <Link href="/app/team">Open team setup</Link>
+          </Button>
+        </Callout>
+      </div>
+    );
+  }
+
+  if (!canViewCash) {
+    return (
+      <div className="space-y-5 animate-fade-up">
+        <AppPageHeader
+          eyebrow="Cash"
+          badge="Restricted"
+          title="Petty Cash"
+          description="Petty cash balances and transactions are visible to finance, supervisors, admins, and owners."
+        />
+        <Callout
+          title="No petty cash access"
+          description="Ask an owner or admin if your role needs access to cash records."
+          icon={Wallet}
+          tone="slate"
+        />
+      </div>
+    );
+  }
+
+  const periodMonth = getOperationalPeriodMonth(new Date());
+  const ledger = await prisma.cashLedger.findFirst({
+    where: { teamId: context.activeTeam.id },
     select: {
       id: true,
+      name: true,
+      status: true,
+      custodian: {
+        select: {
+          email: true,
+          profile: {
+            select: { fullName: true },
+          },
+        },
+      },
       transactions: {
         select: {
           id: true,
@@ -62,15 +122,22 @@ export default async function PettyCashPage({
           receiptReference: true,
           status: true,
           reimbursementStatus: true,
+          voidedAt: true,
+          voidedReason: true,
         },
         orderBy: [{ occurredAt: "asc" }, { createdAt: "asc" }],
+      },
+      closings: {
+        where: { periodMonth },
+        select: { id: true },
+        take: 1,
       },
     },
   });
 
-  const ledgerRows: PettyCashLedgerRow[] = account
+  const ledgerRows: PettyCashLedgerRow[] = ledger
     ? buildRunningLedgerRows(
-        account.transactions.map((transaction) => ({
+        ledger.transactions.map((transaction) => ({
           id: transaction.id,
           occurredAt: transaction.occurredAt,
           createdAt: transaction.createdAt,
@@ -84,17 +151,20 @@ export default async function PettyCashPage({
           receiptReference: transaction.receiptReference,
           status: transaction.status,
           reimbursementStatus: transaction.reimbursementStatus,
+          voidedAt: transaction.voidedAt,
+          voidedReason: transaction.voidedReason,
         })),
       )
     : [];
 
-  const summary = calculatePettyCashSummary(ledgerRows);
+  const summary = calculatePettyCashSummary(ledgerRows, context.profile?.timezone || "Asia/Dubai");
   // Reverse for display (newest first), then filter
   const displayRows = [...ledgerRows].reverse();
   const filteredRows = filterPettyCashRows(displayRows, filters);
   const categories = Array.from(new Set(ledgerRows.map((row) => row.category))).sort((a, b) => a.localeCompare(b));
   const hasOpeningBalance = ledgerRows.some((row) => row.type === "opening_balance");
   const hasAnyRows = ledgerRows.length > 0;
+  const custodianName = ledger?.custodian?.profile?.fullName || ledger?.custodian?.email || "No custodian set";
   const filtersActive = Boolean(
     filters.from || filters.to || (filters.type && filters.type !== "all") || (filters.category && filters.category !== "all") || (filters.reimbursement && filters.reimbursement !== "all"),
   );
@@ -104,9 +174,9 @@ export default async function PettyCashPage({
     <div className="space-y-5 animate-fade-up">
       <AppPageHeader
         eyebrow="Cash"
-        badge={hasAnyRows ? `${summary.transactionCount} entries` : "Ledger"}
-        title="Petty Cash"
-        description="Live balance, expenses, top-ups, and reimbursement tracking."
+        badge={ledger?.status === "closed" ? "Closed" : hasAnyRows ? `${summary.transactionCount} entries` : "Ledger"}
+        title={ledger?.name ?? "Petty Cash"}
+        description={`Cash ledger for ${context.activeTeam.name}. Custodian: ${custodianName}.`}
         actions={
           <div className="flex items-center gap-2">
             <PettyCashExportButton rows={filteredRows} />
@@ -115,6 +185,7 @@ export default async function PettyCashPage({
               buttonIcon
               categories={categories}
               hasOpeningBalance={hasOpeningBalance}
+              disabled={!canManageCash}
             />
           </div>
         }
@@ -196,6 +267,7 @@ export default async function PettyCashPage({
             buttonSize="sm"
             categories={categories}
             hasOpeningBalance={false}
+            disabled={!canManageCash}
           />
         </Callout>
       ) : null}
@@ -217,6 +289,7 @@ export default async function PettyCashPage({
               hasOpeningBalance={hasOpeningBalance}
               initialType="reimbursement_submitted"
               prefilledAmount={summary.unsubmittedExpensesTotal.toFixed(2)}
+              disabled={!canManageCash}
             />
             <PettyCashTransactionSheet
               buttonLabel="Different amount"
@@ -225,6 +298,7 @@ export default async function PettyCashPage({
               categories={categories}
               hasOpeningBalance={hasOpeningBalance}
               initialType="reimbursement_submitted"
+              disabled={!canManageCash}
             />
           </div>
         </Callout>
@@ -246,6 +320,7 @@ export default async function PettyCashPage({
             hasOpeningBalance={hasOpeningBalance}
             initialType="card_settlement"
             prefilledAmount={summary.cardOutstandingTotal.toFixed(2)}
+            disabled={!canManageCash}
           />
         </Callout>
       ) : null}
@@ -266,6 +341,7 @@ export default async function PettyCashPage({
             hasOpeningBalance={hasOpeningBalance}
             initialType="reimbursement_received"
             prefilledAmount={summary.pendingReimbursementTotal.toFixed(2)}
+            disabled={!canManageCash}
           />
         </Callout>
       ) : null}
@@ -306,6 +382,14 @@ export default async function PettyCashPage({
 
       <PettyCashFilterBar filters={filters} categories={categories} />
 
+      {canManageCash && ledger ? (
+        <PettyCashClosingCard
+          expectedBalance={summary.currentCashBalance}
+          alreadyClosed={ledger.closings.length > 0}
+          periodLabel={formatOperationalPeriod(periodMonth)}
+        />
+      ) : null}
+
       <div className="flex items-center justify-between">
         <p className="text-sm text-text-secondary">
           <span className="font-semibold text-text-primary">{filteredRows.length}</span> transactions
@@ -319,6 +403,8 @@ export default async function PettyCashPage({
         hasAnyRows={hasAnyRows}
         filtersActive={filtersActive}
         resetHref="/app/petty-cash"
+        categories={categories}
+        canManage={canManageCash}
       />
     </div>
     </PettyCashPendingProvider>

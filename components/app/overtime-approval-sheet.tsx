@@ -68,6 +68,9 @@ export function OvertimeApprovalSheet({
 
   const onSubmit = handleSubmit((values) => {
     setMessage(null);
+    if (!window.confirm(`Save this ${values.decision.replace("_", " ")} decision for ${entry.workerName}?`)) {
+      return;
+    }
     startTransition(async () => {
       const result = await reviewOvertimeEntryAction(entry.id, values);
       if (result.status === "error") {

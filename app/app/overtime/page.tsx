@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { TeamMemberRole } from "@prisma/client";
 import { Bell, ClipboardCheck, Clock3, HandCoins, Settings2, Users, Wallet } from "lucide-react";
 
 import { AppPageHeader } from "@/components/app/app-page-header";
@@ -17,6 +16,12 @@ import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatCard } from "@/components/ui/stat-card";
+import {
+  canManageOvertimePayroll,
+  canManageOvertimeSettings,
+  canReviewOvertimeEntries,
+  canViewTeamOvertime,
+} from "@/lib/app/authorization";
 import { getRoleBadgeVariant, getRoleLabel } from "@/lib/app/team";
 import { getAppContext } from "@/lib/app/session";
 import { buildMetadata } from "@/lib/site";
@@ -67,15 +72,45 @@ export default async function OvertimePage({
   const context = await getAppContext();
   const resolvedSearchParams = (await searchParams) ?? {};
   const activeTeamId = context.activeTeam?.id ?? null;
-  const isAdmin = context.activeMembership?.role === TeamMemberRole.admin;
+  const canReviewOvertime = canReviewOvertimeEntries(context.activeMembership?.role);
+  const canManagePayroll = canManageOvertimePayroll(context.activeMembership?.role);
+  const canManageSettings = canManageOvertimeSettings(context.activeMembership?.role);
+  const canViewAllOvertime = canViewTeamOvertime(context.activeMembership?.role);
   const scope: "individual" | "team" = activeTeamId ? "team" : "individual";
+
+  if (!activeTeamId) {
+    return (
+      <div className="space-y-5 animate-fade-up">
+        <AppPageHeader
+          eyebrow="Overtime"
+          badge="Team required"
+          title="Overtime"
+          description="Overtime records are scoped to a team workspace."
+        />
+        <Callout
+          title="Create or join a team first"
+          description="Production overtime must belong to a company/team record before shifts can be logged or approved."
+          icon={Users}
+          tone="amber"
+        >
+          <Button asChild variant="accent" size="sm">
+            <Link href="/app/team">Open team setup</Link>
+          </Button>
+        </Callout>
+      </div>
+    );
+  }
 
   const requestedTab = getQueryValue(resolvedSearchParams.tab) ?? "entries";
   const tabs = [
     { value: "entries", label: "Entries" },
-    ...(activeTeamId && isAdmin
+    ...(activeTeamId && canReviewOvertime
       ? [
           { value: "approvals", label: "Approvals" },
+        ]
+      : []),
+    ...(activeTeamId && canManagePayroll
+      ? [
           { value: "members", label: "Members" },
           { value: "payments", label: "Payments" },
         ]
@@ -84,39 +119,33 @@ export default async function OvertimePage({
   ];
   const activeTab = tabs.some((tab) => tab.value === requestedTab) ? requestedTab : tabs[0]?.value ?? "entries";
 
+  const userTimezone = context.profile?.timezone || "Asia/Dubai";
+
   const filters = normalizeOvertimeFilters({
     range: getQueryValue(resolvedSearchParams.range) as Parameters<typeof normalizeOvertimeFilters>[0]["range"],
     from: getQueryValue(resolvedSearchParams.from),
     to: getQueryValue(resolvedSearchParams.to),
     status: getQueryValue(resolvedSearchParams.status) as Parameters<typeof normalizeOvertimeFilters>[0]["status"],
     workerId: getQueryValue(resolvedSearchParams.workerId),
-  });
+  }, userTimezone);
 
   const [settingsRecord, holidayRecords, memberRecords, workerProfiles, paymentRecords, entryRecords] = await Promise.all([
-    activeTeamId
-      ? prisma.overtimeSettings.findUnique({ where: { teamId: activeTeamId } })
-      : prisma.overtimeSettings.findUnique({ where: { ownerUserId: context.user.id } }),
-    activeTeamId ? prisma.overtimeHolidayDate.findMany({ where: { teamId: activeTeamId }, orderBy: { date: "asc" } }) : Promise.resolve([]),
-    activeTeamId
-      ? prisma.teamMember.findMany({
-          where: { teamId: activeTeamId },
-          include: { user: { include: { profile: true } } },
-          orderBy: { createdAt: "asc" },
-        })
-      : Promise.resolve([]),
-    activeTeamId ? prisma.overtimeWorkerProfile.findMany({ where: { teamId: activeTeamId } }) : Promise.resolve([]),
-    activeTeamId
-      ? prisma.overtimePaymentRecord.findMany({
-          where: isAdmin ? { teamId: activeTeamId } : { teamId: activeTeamId, workerUserId: context.user.id },
-          orderBy: { paidUntilDate: "desc" },
-        })
-      : Promise.resolve([]),
+    prisma.overtimeSettings.findUnique({ where: { teamId: activeTeamId } }),
+    prisma.overtimeHolidayDate.findMany({ where: { teamId: activeTeamId }, orderBy: { date: "asc" } }),
+    prisma.teamMember.findMany({
+      where: { teamId: activeTeamId },
+      include: { user: { include: { profile: true } } },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.overtimeWorkerProfile.findMany({ where: { teamId: activeTeamId } }),
+    prisma.overtimePaymentRecord.findMany({
+      where: canManagePayroll ? { teamId: activeTeamId } : { teamId: activeTeamId, workerUserId: context.user.id },
+      orderBy: { paidUntilDate: "desc" },
+    }),
     prisma.overtimeEntry.findMany({
-      where: activeTeamId
-        ? isAdmin
-          ? { teamId: activeTeamId }
-          : { teamId: activeTeamId, workerUserId: context.user.id }
-        : { teamId: null, workerUserId: context.user.id },
+      where: canViewAllOvertime
+        ? { teamId: activeTeamId }
+        : { teamId: activeTeamId, workerUserId: context.user.id },
       include: {
         worker: { include: { profile: true } },
         approvals: { orderBy: { createdAt: "desc" }, take: 1, include: { approver: { include: { profile: true } } } },
@@ -185,8 +214,8 @@ export default async function OvertimePage({
 
   const filteredRows = filterOvertimeRows(rows, filters);
   const pendingRows = rows.filter((row) => row.status === "pending");
-  const thisMonthRows = filterOvertimeRows(rows, normalizeOvertimeFilters({ range: "this_month", status: "all", workerId: "all" }));
-  const summary = calculateOvertimeSummary(rows);
+  const thisMonthRows = filterOvertimeRows(rows, normalizeOvertimeFilters({ range: "this_month", status: "all", workerId: "all" }, userTimezone));
+  const summary = calculateOvertimeSummary(rows, userTimezone);
   const workerBreakdown = buildWorkerBreakdown(thisMonthRows);
   const allWorkerBreakdown = new Map(buildWorkerBreakdown(rows).map((item) => [item.workerUserId, item]));
   const hasSettings = Boolean(settingsRecord);
@@ -224,7 +253,7 @@ export default async function OvertimePage({
         title="Overtime"
         description={
           activeTeamId
-            ? isAdmin
+            ? canViewAllOvertime
               ? "Capture shifts, approve, and track payments for the team."
               : "Log your shifts and see approval and payment status."
             : "Track your own overtime with calculation history."
@@ -237,7 +266,7 @@ export default async function OvertimePage({
               settings={settingsSnapshot}
               holidayDates={holidayRecords.map((holiday) => holiday.date.toISOString().slice(0, 10))}
               workerSalary={currentUserSalary}
-              approvalLabel={activeTeamId && !isAdmin ? "Saves as pending for admin review." : "Saves and auto-approves in your workspace."}
+              approvalLabel={activeTeamId && !canReviewOvertime ? "Saves as pending for supervisor/admin review." : "Saves and auto-approves in your workspace."}
             />
           ) : (
             <Button asChild>
@@ -280,7 +309,7 @@ export default async function OvertimePage({
               <span className="font-semibold tabular-nums">{summary.pendingCount}</span>
               <span className="text-2xs uppercase tracking-wide text-white/60">pending</span>
             </span>
-            {activeTeamId && isAdmin ? (
+            {activeTeamId && canManagePayroll ? (
               <span className="inline-flex items-center gap-1.5 text-white/90">
                 <HandCoins className="h-4 w-4 text-accent-500" />
                 <span className="font-semibold tabular-nums">{summary.unpaidApprovedCount}</span>
@@ -311,11 +340,11 @@ export default async function OvertimePage({
 
       {hasSettings && settingsSnapshot.calculationMode === "mohre_compliant" && currentUserSalary == null ? (
         <Callout
-          title={activeTeamId ? (isAdmin ? "Add your salary profile" : "Salary needed for compliant mode") : "Add your basic salary"}
+          title={activeTeamId ? (canManagePayroll ? "Add your salary profile" : "Salary needed for compliant mode") : "Add your basic salary"}
           description={
             activeTeamId
-              ? isAdmin
-                ? "Set your own worker compensation in Members."
+                ? canManagePayroll
+                  ? "Set your own worker compensation in Members."
                 : "Ask an admin to add your basic monthly salary."
               : "Compliant mode needs your basic monthly salary."
           }
@@ -355,7 +384,7 @@ export default async function OvertimePage({
           </div>
           <OvertimeFilterBar
             filters={filters}
-            workers={isAdmin ? memberRows.map((member) => ({ id: member.id, name: member.name })) : []}
+            workers={canViewAllOvertime ? memberRows.map((member) => ({ id: member.id, name: member.name })) : []}
             tab="entries"
           />
           <OvertimePendingRows />
@@ -363,7 +392,7 @@ export default async function OvertimePage({
             rows={filteredRows}
             hasAnyRows={rows.length > 0}
             filtersActive={filtersActive}
-            showWorkerName={Boolean(activeTeamId && isAdmin)}
+            showWorkerName={Boolean(activeTeamId && canViewAllOvertime)}
             showAdminActions={false}
             emptyTitle="No entries match these filters"
             emptyDescription="Adjust the filters to see more results."
@@ -372,7 +401,7 @@ export default async function OvertimePage({
         </>
       ) : null}
 
-      {activeTab === "approvals" && activeTeamId && isAdmin ? (
+      {activeTab === "approvals" && activeTeamId && canReviewOvertime ? (
         <>
           {pendingRows.length ? (
             <div className="flex items-center justify-between gap-3">
@@ -411,11 +440,11 @@ export default async function OvertimePage({
             date: holiday.date.toISOString().slice(0, 10),
             label: holiday.label,
           }))}
-          canManageHolidays={Boolean(activeTeamId && isAdmin)}
+          canManageHolidays={Boolean(activeTeamId && canManageSettings)}
         />
       ) : null}
 
-      {activeTab === "members" && activeTeamId && isAdmin ? (
+      {activeTab === "members" && activeTeamId && canManagePayroll ? (
         <div className="space-y-4">
           {missingSalaryMembers.length ? (
             <Callout
@@ -480,7 +509,7 @@ export default async function OvertimePage({
 
       {activeTab !== "entries" && activeTab !== "approvals" ? <OvertimePendingRows /> : null}
 
-      {activeTab === "payments" && activeTeamId && isAdmin ? (
+      {activeTab === "payments" && activeTeamId && canManagePayroll ? (
         <div className="space-y-4">
           <Card>
             <CardContent className="space-y-3 p-4 sm:p-5">

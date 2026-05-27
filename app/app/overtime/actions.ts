@@ -4,7 +4,13 @@ import { Prisma, TeamMemberRole } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import {
+  canManageOvertimePayroll,
+  canManageOvertimeSettings,
+  canReviewOvertimeEntries,
+} from "@/lib/app/authorization";
 import { getAppContext } from "@/lib/app/session";
+import { findOperationalPeriodLock, formatOperationalPeriod } from "@/lib/app/period-locks";
 import {
   calculateOvertime,
   formatMinutesAsHours,
@@ -64,8 +70,17 @@ function parseDecimalHoursToMinutes(value: string) {
   return Math.round(parsed * 60);
 }
 
-function ensureAdminMembership(context: Awaited<ReturnType<typeof getAppContext>>) {
-  return Boolean(context.activeTeam && context.activeMembership?.role === TeamMemberRole.admin);
+function getTeamRequiredMessage(context: Awaited<ReturnType<typeof getAppContext>>) {
+  return context.activeTeam && context.activeMembership ? null : "Overtime records require an active team workspace.";
+}
+
+async function getPeriodLockMessage(teamId: string, workedAt: Date) {
+  const lock = await findOperationalPeriodLock(prisma, teamId, "overtime", workedAt);
+  if (!lock) {
+    return null;
+  }
+
+  return `${formatOperationalPeriod(workedAt)} is locked for overtime. Use the admin correction flow instead of editing normal payroll records.`;
 }
 
 async function createNotification(userId: string, teamId: string | null, title: string, body: string, type: "info" | "success" | "warning", data?: Prisma.InputJsonValue) {
@@ -85,7 +100,7 @@ async function createTeamAdminSubmissionNotifications(teamId: string, actorUserI
   const admins = await prisma.teamMember.findMany({
     where: {
       teamId,
-      role: TeamMemberRole.admin,
+      role: { in: [TeamMemberRole.owner, TeamMemberRole.admin, TeamMemberRole.supervisor] },
       userId: {
         not: actorUserId,
       },
@@ -171,21 +186,18 @@ export async function saveOvertimeSettingsAction(values: OvertimeSettingsValues)
   }
 
   const context = await getAppContext();
-  const isAdmin = ensureAdminMembership(context);
-  if (context.activeTeam && !isAdmin) {
+  const teamRequiredMessage = getTeamRequiredMessage(context);
+  if (teamRequiredMessage) {
     return {
       status: "error",
-      message: "Only team admins can update overtime settings.",
+      message: teamRequiredMessage,
     };
   }
 
-  if (!context.activeTeam && parsed.data.calculationMode === "mohre_compliant" && !parsed.data.individualBasicMonthlySalary) {
+  if (!canManageOvertimeSettings(context.activeMembership?.role)) {
     return {
       status: "error",
-      message: "Add your basic monthly salary to use MOHRE-Compliant Mode as an individual.",
-      fieldErrors: {
-        individualBasicMonthlySalary: "Basic monthly salary is required for compliant calculations.",
-      },
+      message: "Only owners and admins can update overtime settings.",
     };
   }
 
@@ -197,29 +209,18 @@ export async function saveOvertimeSettingsAction(values: OvertimeSettingsValues)
     ramadanEnabled: parsed.data.ramadanEnabled,
     ramadanStartDate: parsed.data.ramadanEnabled && parsed.data.ramadanStartDate ? parseDateInputToUtcNoon(parsed.data.ramadanStartDate) : null,
     ramadanEndDate: parsed.data.ramadanEnabled && parsed.data.ramadanEndDate ? parseDateInputToUtcNoon(parsed.data.ramadanEndDate) : null,
-    individualBasicMonthlySalary: context.activeTeam ? null : parseOptionalCurrencyInput(parsed.data.individualBasicMonthlySalary),
+    individualBasicMonthlySalary: null,
   };
 
   await prisma.$transaction(async (tx) => {
-    if (context.activeTeam) {
-      await tx.overtimeSettings.upsert({
-        where: { teamId: context.activeTeam!.id },
-        update: settingsData,
-        create: {
-          teamId: context.activeTeam!.id,
-          ...settingsData,
-        },
-      });
-    } else {
-      await tx.overtimeSettings.upsert({
-        where: { ownerUserId: context.user.id },
-        update: settingsData,
-        create: {
-          ownerUserId: context.user.id,
-          ...settingsData,
-        },
-      });
-    }
+    await tx.overtimeSettings.upsert({
+      where: { teamId: context.activeTeam!.id },
+      update: settingsData,
+      create: {
+        teamId: context.activeTeam!.id,
+        ...settingsData,
+      },
+    });
 
     await tx.auditLog.create({
       data: {
@@ -227,7 +228,7 @@ export async function saveOvertimeSettingsAction(values: OvertimeSettingsValues)
         actorUserId: context.user.id,
         action: "overtime.settings.updated",
         entityType: "OvertimeSettings",
-        summary: context.activeTeam ? "Updated team overtime settings." : "Updated individual overtime settings.",
+        summary: "Updated team overtime settings.",
       },
     });
   });
@@ -253,10 +254,10 @@ export async function addOvertimeHolidayAction(values: OvertimeHolidayValues): P
   }
 
   const context = await getAppContext();
-  if (!ensureAdminMembership(context) || !context.activeTeam) {
+  if (getTeamRequiredMessage(context) || !canManageOvertimeSettings(context.activeMembership?.role)) {
     return {
       status: "error",
-      message: "Only team admins can manage holiday dates.",
+      message: "Only owners and admins can manage holiday dates.",
     };
   }
 
@@ -302,10 +303,10 @@ export async function addOvertimeHolidayAction(values: OvertimeHolidayValues): P
 
 export async function deleteOvertimeHolidayAction(holidayId: string): Promise<ActionResult> {
   const context = await getAppContext();
-  if (!ensureAdminMembership(context) || !context.activeTeam) {
+  if (getTeamRequiredMessage(context) || !canManageOvertimeSettings(context.activeMembership?.role)) {
     return {
       status: "error",
-      message: "Only team admins can remove holiday dates.",
+      message: "Only owners and admins can remove holiday dates.",
     };
   }
 
@@ -359,6 +360,14 @@ export async function createOvertimeEntryAction(values: OvertimeEntryValues): Pr
   }
 
   const context = await getAppContext();
+  const teamRequiredMessage = getTeamRequiredMessage(context);
+  if (teamRequiredMessage) {
+    return {
+      status: "error",
+      message: teamRequiredMessage,
+    };
+  }
+
   const settings = await getSettingsForContext(context);
   if (!settings) {
     return {
@@ -399,15 +408,23 @@ export async function createOvertimeEntryAction(values: OvertimeEntryValues): Pr
   const endTimeParts = parsed.data.endTime.split(":").map(Number);
   const startTimeMinutes = (startTimeParts[0] ?? 0) * 60 + (startTimeParts[1] ?? 0);
   const endTimeMinutes = (endTimeParts[0] ?? 0) * 60 + (endTimeParts[1] ?? 0);
-  const teamId = context.activeTeam?.id ?? null;
-  const status = !teamId || context.resolvedRole === "admin" ? "auto_approved" : "pending";
+  const teamId = context.activeTeam!.id;
+  const status = canReviewOvertimeEntries(context.activeMembership?.role) ? "auto_approved" : "pending";
+  const workedAt = parseDateInputToUtcNoon(parsed.data.workedDate);
+  const periodLockMessage = await getPeriodLockMessage(teamId, workedAt);
+  if (periodLockMessage) {
+    return {
+      status: "error",
+      message: periodLockMessage,
+    };
+  }
 
   await prisma.$transaction(async (tx) => {
     const entry = await tx.overtimeEntry.create({
       data: {
         teamId,
         workerUserId: context.user.id,
-        workedDate: parseDateInputToUtcNoon(parsed.data.workedDate),
+        workedDate: workedAt,
         startTimeMinutes,
         endTimeMinutes,
         overnight: parsed.data.overnight,
@@ -460,10 +477,10 @@ export async function createOvertimeEntryAction(values: OvertimeEntryValues): Pr
 
 export async function approveOvertimeEntryQuickAction(entryId: string): Promise<ActionResult> {
   const context = await getAppContext();
-  if (!ensureAdminMembership(context) || !context.activeTeam) {
+  if (getTeamRequiredMessage(context) || !canReviewOvertimeEntries(context.activeMembership?.role)) {
     return {
       status: "error",
-      message: "Only team admins can approve overtime entries.",
+      message: "Only owners, admins, and supervisors can approve overtime entries.",
     };
   }
 
@@ -492,6 +509,14 @@ export async function approveOvertimeEntryQuickAction(entryId: string): Promise<
     return {
       status: "error",
       message: "Only pending entries can be approved from the queue.",
+    };
+  }
+
+  const periodLockMessage = await getPeriodLockMessage(context.activeTeam!.id, entry.workedDate);
+  if (periodLockMessage) {
+    return {
+      status: "error",
+      message: periodLockMessage,
     };
   }
 
@@ -559,10 +584,10 @@ export async function reviewOvertimeEntryAction(entryId: string, values: Overtim
   }
 
   const context = await getAppContext();
-  if (!ensureAdminMembership(context) || !context.activeTeam) {
+  if (getTeamRequiredMessage(context) || !canReviewOvertimeEntries(context.activeMembership?.role)) {
     return {
       status: "error",
-      message: "Only team admins can review overtime entries.",
+      message: "Only owners, admins, and supervisors can review overtime entries.",
     };
   }
 
@@ -591,6 +616,14 @@ export async function reviewOvertimeEntryAction(entryId: string, values: Overtim
     return {
       status: "error",
       message: "Only pending entries can be reviewed.",
+    };
+  }
+
+  const periodLockMessage = await getPeriodLockMessage(context.activeTeam!.id, entry.workedDate);
+  if (periodLockMessage) {
+    return {
+      status: "error",
+      message: periodLockMessage,
     };
   }
 
@@ -696,10 +729,10 @@ export async function saveOvertimeWorkerCompensationAction(values: OvertimeWorke
   }
 
   const context = await getAppContext();
-  if (!ensureAdminMembership(context) || !context.activeTeam) {
+  if (getTeamRequiredMessage(context) || !canManageOvertimePayroll(context.activeMembership?.role)) {
     return {
       status: "error",
-      message: "Only team admins can manage worker salaries.",
+      message: "Only owners, admins, and finance can manage worker salaries.",
     };
   }
 
@@ -773,10 +806,10 @@ export async function markOvertimePaymentAction(values: OvertimePaymentValues): 
   }
 
   const context = await getAppContext();
-  if (!ensureAdminMembership(context) || !context.activeTeam) {
+  if (getTeamRequiredMessage(context) || !canManageOvertimePayroll(context.activeMembership?.role)) {
     return {
       status: "error",
-      message: "Only team admins can mark payments.",
+      message: "Only owners, admins, and finance can mark payments.",
     };
   }
 
@@ -802,6 +835,29 @@ export async function markOvertimePaymentAction(values: OvertimePaymentValues): 
   }
 
   const paidUntilDate = parseDateInputToUtcNoon(parsed.data.paidUntilDate);
+  const periodLockMessage = await getPeriodLockMessage(context.activeTeam!.id, paidUntilDate);
+  if (periodLockMessage) {
+    return {
+      status: "error",
+      message: periodLockMessage,
+    };
+  }
+
+  const approvedCount = await prisma.overtimeEntry.count({
+    where: {
+      teamId: context.activeTeam!.id,
+      workerUserId: parsed.data.workerUserId,
+      workedDate: { lte: paidUntilDate },
+      status: { in: ["approved", "auto_approved"] },
+    },
+  });
+
+  if (!approvedCount) {
+    return {
+      status: "error",
+      message: "Approved overtime is required before payment can be marked.",
+    };
+  }
 
   await prisma.$transaction(async (tx) => {
     await tx.overtimePaymentRecord.create({

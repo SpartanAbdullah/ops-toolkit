@@ -96,6 +96,7 @@ export function PettyCashTransactionSheet({
   hasOpeningBalance,
   initialType,
   prefilledAmount,
+  disabled = false,
 }: {
   buttonLabel: string;
   buttonVariant?: ButtonProps["variant"];
@@ -106,6 +107,7 @@ export function PettyCashTransactionSheet({
   hasOpeningBalance: boolean;
   initialType?: PettyCashTransactionTypeValue;
   prefilledAmount?: string;
+  disabled?: boolean;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -200,6 +202,10 @@ export function PettyCashTransactionSheet({
 
   const onSubmit = handleSubmit((values) => {
     setMessage(null);
+    const typeLabel = pettyCashTransactionTypeMeta[values.type].label;
+    if (!window.confirm(`Save ${typeLabel} for AED ${values.amount}? This will update the team cash ledger.`)) {
+      return;
+    }
     // Capture the optimistic snapshot before the transition starts
     const numeric = Number(values.amount);
     const optimisticAmount = Number.isFinite(numeric)
@@ -262,7 +268,7 @@ export function PettyCashTransactionSheet({
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant={buttonVariant} size={buttonSize} className={buttonClassName}>
+        <Button variant={buttonVariant} size={buttonSize} className={buttonClassName} disabled={disabled}>
           {buttonIcon ? <Plus className="h-4 w-4" /> : null}
           {buttonLabel}
         </Button>

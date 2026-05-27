@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm test *)",
+      "Bash(mkdir -p prisma/migrations/0_init)",
+      "Bash(npx prisma *)",
+      "Bash(curl -sI http://localhost:3000/login)",
+      "Bash(curl -s http://localhost:3000/login -o /tmp/login.html)",
+      "Read(//tmp/**)",
+      "Bash(curl -sI http://localhost:3000/signup)",
+      "Bash(curl -sI http://localhost:3000/app/overtime)",
+      "Bash(curl -sI http://localhost:3000/manifest.webmanifest)",
+      "Bash(mkdir -p prisma/migrations/1_add_petty_cash_void)",
+      "Bash(curl -sI http://localhost:3000/app/petty-cash)",
+      "Bash(curl -sI http://localhost:3001/app/petty-cash)",
+      "Bash(curl -sI http://localhost:3001/login)",
+      "Bash(grep -oE \"Local:.*$\")",
+      "Bash(curl -sI http://localhost:3002/privacy)",
+      "Bash(curl -sI http://localhost:3002/terms)",
+      "Bash(curl -s http://localhost:3002/privacy)",
+      "Bash(curl -s http://localhost:3002/signup)"
+    ]
+  }
+}

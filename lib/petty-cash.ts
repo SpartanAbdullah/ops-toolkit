@@ -1,4 +1,5 @@
 import { formatCurrency } from "@/lib/utils";
+import { DEFAULT_TIMEZONE, getZonedMonthBounds } from "@/lib/tz";
 
 export const pettyCashTransactionTypeMeta = {
   opening_balance: {
@@ -87,6 +88,9 @@ export type PettyCashLedgerRow = {
   statusLabel: string;
   reimbursementStatus: PettyCashReimbursementStatusValue;
   reimbursementStatusLabel: string;
+  voided: boolean;
+  voidedAt: string | null;
+  voidedReason: string | null;
   createdAt: string;
 };
 
@@ -99,6 +103,13 @@ export type PettyCashSummary = {
   cardOutstandingTotal: number;
   netPosition: number;
   transactionCount: number;
+};
+
+export type PettyCashClosingSnapshot = {
+  expectedBalance: number;
+  countedCash: number;
+  difference: number;
+  status: "balanced" | "over" | "short";
 };
 
 export const pettyCashDefaultCategories = [
@@ -263,13 +274,17 @@ export function buildRunningLedgerRows(
     receiptReference: string | null;
     status: PettyCashTransactionStatusValue;
     reimbursementStatus: PettyCashReimbursementStatusValue;
+    voidedAt?: Date | string | null;
+    voidedReason?: string | null;
   }>,
 ): PettyCashLedgerRow[] {
   let runningBalance = 0;
 
   return transactions.map((transaction) => {
     const amount = Number(transaction.amount);
-    const cashImpact = getCashImpact(transaction.type, amount);
+    const voided = Boolean(transaction.voidedAt);
+    // Voided txns are kept in the ledger for audit but excluded from balance
+    const cashImpact = voided ? 0 : getCashImpact(transaction.type, amount);
     runningBalance += cashImpact;
     const occurredOn = transaction.occurredAt instanceof Date
       ? transaction.occurredAt.toISOString().slice(0, 10)
@@ -277,6 +292,9 @@ export function buildRunningLedgerRows(
     const createdAt = transaction.createdAt instanceof Date
       ? transaction.createdAt.toISOString()
       : `${transaction.createdAt}`;
+    const voidedAt = transaction.voidedAt
+      ? (transaction.voidedAt instanceof Date ? transaction.voidedAt.toISOString() : `${transaction.voidedAt}`)
+      : null;
 
     return {
       id: transaction.id,
@@ -300,34 +318,41 @@ export function buildRunningLedgerRows(
       statusLabel: formatPettyCashStatus(transaction.status),
       reimbursementStatus: transaction.reimbursementStatus,
       reimbursementStatusLabel: formatPettyCashReimbursementStatus(transaction.reimbursementStatus),
+      voided,
+      voidedAt,
+      voidedReason: transaction.voidedReason ?? null,
       createdAt,
     };
   });
 }
 
-export function calculatePettyCashSummary(rows: PettyCashLedgerRow[], referenceDate = new Date()): PettyCashSummary {
-  const monthStart = new Date(Date.UTC(referenceDate.getUTCFullYear(), referenceDate.getUTCMonth(), 1));
-  const monthEnd = new Date(Date.UTC(referenceDate.getUTCFullYear(), referenceDate.getUTCMonth() + 1, 1));
+export function calculatePettyCashSummary(
+  rows: PettyCashLedgerRow[],
+  timezone: string = DEFAULT_TIMEZONE,
+  referenceDate: Date = new Date(),
+): PettyCashSummary {
+  const { from: monthStart, to: monthEnd } = getZonedMonthBounds(referenceDate, timezone);
 
-  const thisMonthExpenses = rows.reduce((total, row) => {
-    const occurredAt = new Date(`${row.occurredOn}T12:00:00.000Z`);
-    const isThisMonth = occurredAt >= monthStart && occurredAt < monthEnd;
+  const activeRows = rows.filter((row) => !row.voided);
+
+  const thisMonthExpenses = activeRows.reduce((total, row) => {
+    const isThisMonth = row.occurredOn >= monthStart && row.occurredOn <= monthEnd;
     const isExpense = row.type === "expense_cash" || row.type === "expense_card";
 
     return isThisMonth && isExpense ? total + row.amount : total;
   }, 0);
 
-  const submittedTotal = rows.reduce((total, row) => row.type === "reimbursement_submitted" ? total + row.amount : total, 0);
-  const receivedTotal = rows.reduce((total, row) => row.type === "reimbursement_received" ? total + row.amount : total, 0);
-  const allExpensesTotal = rows.reduce(
+  const submittedTotal = activeRows.reduce((total, row) => row.type === "reimbursement_submitted" ? total + row.amount : total, 0);
+  const receivedTotal = activeRows.reduce((total, row) => row.type === "reimbursement_received" ? total + row.amount : total, 0);
+  const allExpensesTotal = activeRows.reduce(
     (total, row) => (row.type === "expense_cash" || row.type === "expense_card") ? total + row.amount : total,
     0,
   );
-  const cardSpendTotal = rows.reduce(
+  const cardSpendTotal = activeRows.reduce(
     (total, row) => row.type === "expense_card" ? total + row.amount : total,
     0,
   );
-  const cardSettlementTotal = rows.reduce(
+  const cardSettlementTotal = activeRows.reduce(
     (total, row) => row.type === "card_settlement" ? total + row.amount : total,
     0,
   );
@@ -348,6 +373,16 @@ export function calculatePettyCashSummary(rows: PettyCashLedgerRow[], referenceD
     cardOutstandingTotal,
     netPosition,
     transactionCount: rows.length,
+  };
+}
+
+export function calculatePettyCashClosing(expectedBalance: number, countedCash: number): PettyCashClosingSnapshot {
+  const difference = Math.round((countedCash - expectedBalance + Number.EPSILON) * 100) / 100;
+  return {
+    expectedBalance,
+    countedCash,
+    difference,
+    status: difference === 0 ? "balanced" : difference > 0 ? "over" : "short",
   };
 }
 
@@ -420,6 +455,8 @@ export function buildPettyCashCsv(rows: PettyCashLedgerRow[]) {
     "Running Balance",
     "Payment Method",
     "Status",
+    "Voided",
+    "Voided Reason",
     "Reference Number",
     "Receipt Reference",
     "Notes",
@@ -435,6 +472,8 @@ export function buildPettyCashCsv(rows: PettyCashLedgerRow[]) {
     `${row.runningBalance}`,
     row.paymentMethodLabel ?? "",
     row.statusLabel,
+    row.voided ? "Yes" : "",
+    row.voidedReason ?? "",
     row.referenceNumber ?? "",
     row.receiptReference ?? "",
     row.notes ?? "",

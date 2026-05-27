@@ -157,6 +157,28 @@
     @apply rounded-2xl bg-surface-muted border border-border/60;
   }
 
+  .legal-prose h2 {
+    @apply font-display text-xl font-semibold tracking-tight text-text-primary pt-2;
+  }
+  .legal-prose h3 {
+    @apply font-display text-base font-semibold text-text-primary;
+  }
+  .legal-prose p {
+    @apply text-[15px] leading-7 text-text-secondary;
+  }
+  .legal-prose ul {
+    @apply list-disc space-y-1.5 pl-5;
+  }
+  .legal-prose li {
+    @apply text-[15px] leading-6 text-text-secondary;
+  }
+  .legal-prose a {
+    @apply text-primary-600 underline underline-offset-2 hover:text-primary-700;
+  }
+  .legal-prose strong {
+    @apply font-semibold text-text-primary;
+  }
+
   .grid-noise {
     background-image:
       radial-gradient(circle at 15% 15%, hsl(var(--accent-50) / 0.7), transparent 50%),

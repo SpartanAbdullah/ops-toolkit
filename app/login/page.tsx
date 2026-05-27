@@ -35,9 +35,14 @@ export default function LoginPage() {
             </Suspense>
           </div>
 
-          <p className="text-center text-2xs text-text-muted">
-            Ops Toolkit · Built for UAE operations teams
-          </p>
+          <div className="space-y-1 text-center text-2xs text-text-muted">
+            <p>Ops Toolkit · Built for UAE operations teams</p>
+            <p className="flex justify-center gap-3">
+              <Link href="/privacy" className="hover:text-text-primary">Privacy</Link>
+              <span aria-hidden="true">·</span>
+              <Link href="/terms" className="hover:text-text-primary">Terms</Link>
+            </p>
+          </div>
         </div>
       </div>
     </div>

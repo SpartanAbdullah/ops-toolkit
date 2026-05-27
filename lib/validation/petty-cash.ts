@@ -80,3 +80,19 @@ export const pettyCashTransactionSchema = z
   });
 
 export type PettyCashTransactionFormValues = z.infer<typeof pettyCashTransactionSchema>;
+
+export const pettyCashClosingSchema = z.object({
+  countedCash: z.string().trim().min(1, "Enter the counted cash amount."),
+  financeNote: z.string().trim().max(500, "Keep the note under 500 characters.").or(z.literal("")),
+}).superRefine((values, context) => {
+  const countedCash = Number(values.countedCash);
+  if (!Number.isFinite(countedCash) || countedCash < 0) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["countedCash"],
+      message: "Counted cash must be zero or greater.",
+    });
+  }
+});
+
+export type PettyCashClosingFormValues = z.infer<typeof pettyCashClosingSchema>;

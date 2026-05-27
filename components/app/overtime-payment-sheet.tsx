@@ -84,6 +84,10 @@ export function OvertimePaymentSheet({
 
   const onSubmit = handleSubmit((values) => {
     setMessage(null);
+    const workerName = workers.find((w) => w.id === values.workerUserId)?.name ?? "Worker";
+    if (!window.confirm(`Mark approved overtime paid for ${workerName} through ${formatOvertimeDate(values.paidUntilDate)}?`)) {
+      return;
+    }
     startTransition(async () => {
       const result = await markOvertimePaymentAction(values);
       if (result.status === "error") {
@@ -95,7 +99,6 @@ export function OvertimePaymentSheet({
         setMessage({ tone: "error", text: result.message });
         return;
       }
-      const workerName = workers.find((w) => w.id === values.workerUserId)?.name ?? "Worker";
       toast({
         title: "Payment recorded",
         description: `${workerName} · paid through ${formatOvertimeDate(values.paidUntilDate)}`,

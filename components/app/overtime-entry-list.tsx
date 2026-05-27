@@ -181,7 +181,7 @@ function EntryCard({
         {row.approvedBy ? (
           <>
             <span>·</span>
-            <span>{row.approvedBy}</span>
+            <span>Approved by {row.approvedBy}</span>
           </>
         ) : null}
       </div>

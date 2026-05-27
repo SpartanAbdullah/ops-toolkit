@@ -1,4 +1,3 @@
-import { TeamMemberRole } from "@prisma/client";
 import { ShieldCheck, Users2 } from "lucide-react";
 
 import { AppPageHeader } from "@/components/app/app-page-header";
@@ -7,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Callout } from "@/components/ui/callout";
 import { Card, CardContent } from "@/components/ui/card";
 import { SectionHeader } from "@/components/ui/section-header";
+import { canManageTeamInvites } from "@/lib/app/authorization";
 import { getRoleBadgeVariant, getRoleLabel } from "@/lib/app/team";
 import { getAppContext } from "@/lib/app/session";
 import { prisma } from "@/lib/prisma";
@@ -18,7 +18,7 @@ export default async function TeamPage() {
   const context = await getAppContext();
   const roleLabel = getRoleLabel(context.resolvedRole);
   const roleVariant = getRoleBadgeVariant(context.resolvedRole);
-  const isAdmin = context.activeMembership?.role === TeamMemberRole.admin;
+  const canRotateJoinCode = canManageTeamInvites(context.activeMembership?.role);
 
   const teamData = context.activeTeam
     ? await prisma.team.findUnique({
@@ -85,12 +85,12 @@ export default async function TeamPage() {
                 </div>
                 <Badge variant={roleVariant}>{roleLabel}</Badge>
               </div>
-              {isAdmin ? (
+              {canRotateJoinCode ? (
                 <RegenerateJoinCodeButton />
               ) : (
                 <Callout
                   title="Workers can view the code"
-                  description="Only admins can rotate the join code."
+                  description="Only owners and admins can rotate the join code."
                   icon={ShieldCheck}
                   tone="navy"
                 />
@@ -128,7 +128,7 @@ export default async function TeamPage() {
             </CardContent>
           </Card>
 
-          {!isAdmin ? (
+          {!canRotateJoinCode ? (
             <Callout
               title="Need to leave or switch teams?"
               description="Ask an admin to rotate the code or contact ops support."

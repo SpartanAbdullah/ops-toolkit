@@ -38,3 +38,7 @@ export function getRequiredServerEnv(): ServerEnv {
 
   return parsed.data;
 }
+
+export function isPublicSignupEnabled() {
+  return process.env.NEXT_PUBLIC_ENABLE_PUBLIC_SIGNUP !== "false";
+}

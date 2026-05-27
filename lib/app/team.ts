@@ -50,8 +50,20 @@ export async function generateUniqueJoinCode() {
 }
 
 export function mapMembershipRoleToAppRole(role?: TeamMemberRole | null): AppRole {
+  if (role === TeamMemberRole.owner) {
+    return AppRole.owner;
+  }
+
   if (role === TeamMemberRole.admin) {
     return AppRole.admin;
+  }
+
+  if (role === TeamMemberRole.supervisor) {
+    return AppRole.supervisor;
+  }
+
+  if (role === TeamMemberRole.finance) {
+    return AppRole.finance;
   }
 
   if (role === TeamMemberRole.worker) {
@@ -63,9 +75,18 @@ export function mapMembershipRoleToAppRole(role?: TeamMemberRole | null): AppRol
 
 export function getRoleLabel(role: AppRole | TeamMemberRole) {
   switch (role) {
+    case AppRole.owner:
+    case TeamMemberRole.owner:
+      return "Owner";
     case AppRole.admin:
     case TeamMemberRole.admin:
       return "Admin";
+    case AppRole.supervisor:
+    case TeamMemberRole.supervisor:
+      return "Supervisor";
+    case AppRole.finance:
+    case TeamMemberRole.finance:
+      return "Finance";
     case AppRole.worker:
     case TeamMemberRole.worker:
       return "Worker";
@@ -76,12 +97,21 @@ export function getRoleLabel(role: AppRole | TeamMemberRole) {
 
 export function getRoleBadgeVariant(role: AppRole | TeamMemberRole) {
   switch (role) {
+    case AppRole.owner:
+    case TeamMemberRole.owner:
+      return "purple" as const;
     case AppRole.admin:
     case TeamMemberRole.admin:
-      return "purple" as const;
+      return "blue" as const;
+    case AppRole.supervisor:
+    case TeamMemberRole.supervisor:
+      return "amber" as const;
+    case AppRole.finance:
+    case TeamMemberRole.finance:
+      return "mint" as const;
     case AppRole.worker:
     case TeamMemberRole.worker:
-      return "blue" as const;
+      return "slate" as const;
     default:
       return "green" as const;
   }

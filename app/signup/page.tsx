@@ -3,11 +3,14 @@ import { Suspense } from "react";
 
 import { SignupForm } from "@/components/auth/signup-form";
 import { BrandMark } from "@/components/brand/brand-mark";
+import { isPublicSignupEnabled } from "@/lib/env";
 import { buildMetadata } from "@/lib/site";
 
 export const metadata = buildMetadata({ title: "Create account" });
 
 export default function SignupPage() {
+  const publicSignupEnabled = isPublicSignupEnabled();
+
   return (
     <div className="flex min-h-screen flex-col bg-app-background">
       <div className="grid-noise relative flex flex-1 items-center justify-center px-4 py-10 safe-top">
@@ -31,13 +34,18 @@ export default function SignupPage() {
             <Suspense
               fallback={<div className="h-64 animate-pulse rounded-xl bg-surface-muted" />}
             >
-              <SignupForm />
+              <SignupForm publicSignupEnabled={publicSignupEnabled} />
             </Suspense>
           </div>
 
-          <p className="text-center text-2xs text-text-muted">
-            Ops Toolkit · Built for UAE operations teams
-          </p>
+          <div className="space-y-1 text-center text-2xs text-text-muted">
+            <p>Ops Toolkit · Built for UAE operations teams</p>
+            <p className="flex justify-center gap-3">
+              <Link href="/privacy" className="hover:text-text-primary">Privacy</Link>
+              <span aria-hidden="true">·</span>
+              <Link href="/terms" className="hover:text-text-primary">Terms</Link>
+            </p>
+          </div>
         </div>
       </div>
     </div>

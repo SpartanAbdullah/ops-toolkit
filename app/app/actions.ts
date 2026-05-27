@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { generateUniqueJoinCode, generateUniqueTeamSlug, mapMembershipRoleToAppRole } from "@/lib/app/team";
+import { canManageTeamInvites } from "@/lib/app/authorization";
 import { getAppContext } from "@/lib/app/session";
 import { parseDateInputToUtcNoon } from "@/lib/overtime";
 import { prisma } from "@/lib/prisma";
@@ -120,7 +121,7 @@ export async function createTeamAction(values: CreateTeamValues): Promise<Action
       data: {
         teamId: team.id,
         userId: context.user.id,
-        role: TeamMemberRole.admin,
+        role: TeamMemberRole.owner,
       },
     });
 
@@ -149,7 +150,7 @@ export async function createTeamAction(values: CreateTeamValues): Promise<Action
       where: { id: context.user.id },
       data: {
         activeTeamId: team.id,
-        role: AppRole.admin,
+        role: AppRole.owner,
       },
     });
 
@@ -305,10 +306,10 @@ export async function markAllNotificationsReadAction(): Promise<ActionResult> {
 
 export async function regenerateJoinCodeAction(): Promise<ActionResult<never, { joinCode: string }>> {
   const context = await getAppContext();
-  if (!context.activeTeam || context.activeMembership?.role !== TeamMemberRole.admin) {
+  if (!context.activeTeam || !canManageTeamInvites(context.activeMembership?.role)) {
     return {
       status: "error",
-      message: "Only team admins can rotate the join code.",
+      message: "Only owners and admins can rotate the join code.",
     };
   }
 
