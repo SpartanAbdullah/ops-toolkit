@@ -11,6 +11,14 @@ function isUniqueConstraintError(error: unknown): boolean {
   return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
 }
 
+function hasVerifiedEmail(authUser: SupabaseUser): boolean {
+  const verification = authUser as SupabaseUser & {
+    confirmed_at?: string | null;
+    email_confirmed_at?: string | null;
+  };
+  return Boolean(authUser.email && (verification.email_confirmed_at || verification.confirmed_at));
+}
+
 const USER_INCLUDE = {
   profile: true,
   activeTeam: true,
@@ -27,7 +35,7 @@ function extractFullName(authUser: SupabaseUser) {
   return null;
 }
 
-async function ensureUserRecord(authUser: SupabaseUser) {
+export async function ensureUserRecord(authUser: SupabaseUser) {
   let existingUser = await prisma.user.findUnique({
     where: { id: authUser.id },
     include: USER_INCLUDE,
@@ -55,11 +63,21 @@ async function ensureUserRecord(authUser: SupabaseUser) {
       if (!isUniqueConstraintError(error)) {
         throw error;
       }
-      // Concurrent request created the user — re-fetch and fall through to reconciliation
-      existingUser = await prisma.user.findUniqueOrThrow({
+      // Re-fetch by auth id first; if the auth user was recreated, recover by
+      // verified email so an existing workspace account does not crash on /app.
+      existingUser = await prisma.user.findUnique({
         where: { id: authUser.id },
         include: USER_INCLUDE,
       });
+      if (!existingUser && hasVerifiedEmail(authUser)) {
+        existingUser = await prisma.user.findUnique({
+          where: { email: authUser.email },
+          include: USER_INCLUDE,
+        });
+      }
+      if (!existingUser) {
+        throw error;
+      }
     }
   }
 
